@@ -53,6 +53,29 @@ class PipelineCoordinator: ObservableObject {
             let engine = self.audioEngine
             let settings = self.settings
 
+            // Push settings every frame to ensure they're always current
+            interpreter.sustainEnabled = settings.sustainEnabled
+            interpreter.waveformOverride = settings.selectedWaveform
+            interpreter.fingerPerNoteEnabled = settings.fingerPerNoteMode
+
+            let arp = interpreter.arpeggiator
+            arp.enabled = settings.arpEnabled
+            arp.bpm = settings.arpBPM
+            arp.pattern = settings.arpPattern
+            arp.octaveRange = settings.arpOctaveRange
+            arp.scale = settings.selectedScale
+            arp.rootNote = settings.rootNote
+            arp.baseOctave = settings.baseOctave
+            arp.scaleOctaveRange = settings.octaveRange
+
+            engine.scale = settings.selectedScale
+            engine.rootNote = settings.rootNote
+            engine.baseOctave = settings.baseOctave
+            engine.octaveRange = settings.octaveRange
+            engine.portamentoSpeed = settings.portamentoSpeedFloat
+            engine.attackTimeMs = Float(settings.attackTimeMs)
+            engine.releaseTimeMs = Float(settings.releaseTimeMs)
+
             interpreter.update(leftHand: left, rightHand: right)
             var params = interpreter.parameters
             if settings.isQuantized { params.isQuantized = true }
