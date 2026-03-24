@@ -13,6 +13,7 @@ A macOS app that turns your hands into a musical instrument — track hand gestu
 - **Four waveforms** — Sine, Triangle, Sawtooth, Pad (5-voice detuned unison)
 - **Five musical scales** — Major, Minor, Pentatonic, Chromatic, Blues with configurable root note
 - **Expressive gestures** — pitch, volume, mute, sustain, precision mode, vibrato, filter cutoff
+- **Finger-per-note mode** — piano-style polyphony, curl each finger to play its scale degree
 - **Arpeggiator** — scale-aware pattern cycling (up/down/upDown/random) with configurable BPM
 - **Attack/release envelope** — smooth note transitions with adjustable timing
 - **Metal terrain visualizer** — FFT-driven scrolling mountain ridges in a toggleable split view
@@ -53,6 +54,8 @@ The camera captures video frames on a background queue. Each frame is processed 
 
 ## Gesture Reference
 
+### Standard Mode
+
 | Gesture | Hand | Effect |
 |---|---|---|
 | Hand height (up/down) | Left | Pitch — bottom is low, top is high |
@@ -63,6 +66,19 @@ The camera captures video frames on a background queue. Each frame is processed 
 | Peace sign | Right | Toggle quantized/chromatic mode |
 | Finger spread | Right | Filter cutoff (closed = dark, open = bright) |
 | Hand shake | Left | Vibrato (depth and rate from motion) |
+
+### Finger-Per-Note Mode
+
+Piano-style polyphony — curl a finger down to play its note, lift to stop. Each finger maps to a scale degree. Right hand still controls volume and effects, or can be omitted (defaults to 80% volume).
+
+| Finger | Scale Degree |
+|---|---|
+| Thumb | 1st (root) |
+| Index | 2nd |
+| Middle | 3rd |
+| Ring | 4th |
+| Little | 5th |
+| Hand height | Octave select |
 
 ## Project Structure
 
@@ -118,6 +134,7 @@ All settings persist across launches. Configurable via the gear icon:
 - **Reverb mix** — 0–100%
 - **Delay mix** — 0–100%
 - **Visualizer** — Toggle split view, terrain height/spacing, primary/secondary colors
+- **Finger-per-note** — Piano-style polyphonic mode
 - **Sustain enabled** — Allow pinch gesture to hold notes
 - **Show hand skeleton** — Debug overlay toggle
 
