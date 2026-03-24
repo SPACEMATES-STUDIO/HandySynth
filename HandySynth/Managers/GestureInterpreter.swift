@@ -17,6 +17,7 @@ class GestureInterpreter: ObservableObject {
     // Set by pipeline wiring — read on background queue
     var sustainEnabled: Bool = true
     var waveformOverride: Waveform = .sine
+    var fingerPerNoteEnabled: Bool = false
     let arpeggiator = Arpeggiator()
 
     // Smoothing filters for continuous parameters
@@ -65,6 +66,11 @@ class GestureInterpreter: ObservableObject {
             return
         }
 
+        if fingerPerNoteEnabled {
+            processFingerPerNote(left, params: &params)
+            return
+        }
+
         let rawGesture = GestureDetector.detectGesture(hand: left)
         let gesture = leftDebouncer.update(rawGesture)
 
@@ -99,11 +105,55 @@ class GestureInterpreter: ObservableObject {
         detectVibrato(wristY: Float(left.wrist.y), params: &params)
     }
 
+    // MARK: - Finger Per Note
+
+    private func processFingerPerNote(_ hand: HandLandmarks, params: inout MusicalParameters) {
+        let fingers = FingerState.from(hand)
+
+        // Hand height selects octave
+        let handY = min(max(Float(hand.wrist.y), 0.0), 1.0)
+        let octaveOffset = Int(handY * Float(arpeggiator.scaleOctaveRange))
+        let clampedOctaveOffset = min(octaveOffset, arpeggiator.scaleOctaveRange - 1)
+
+        let semitones = arpeggiator.scale.semitones
+        let baseMidi = (arpeggiator.baseOctave + 1) * 12 + arpeggiator.rootNote.semitoneOffset + clampedOctaveOffset * 12
+
+        // Each finger = independent voice mapped to a scale degree
+        let fingerStates = [fingers.thumbExtended, fingers.indexExtended,
+                            fingers.middleExtended, fingers.ringExtended, fingers.littleExtended]
+
+        var freqs: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
+        var active: (Bool, Bool, Bool, Bool, Bool) = (false, false, false, false, false)
+
+        for i in 0..<5 {
+            let semitone = semitones[min(i, semitones.count - 1)]
+            let freq = ScaleHelper.midiNoteToFrequency(Float(baseMidi + semitone))
+            let isOn = !fingerStates[i]  // finger curled (down) = note on, like a piano
+
+            switch i {
+            case 0: freqs.0 = freq; active.0 = isOn
+            case 1: freqs.1 = freq; active.1 = isOn
+            case 2: freqs.2 = freq; active.2 = isOn
+            case 3: freqs.3 = freq; active.3 = isOn
+            case 4: freqs.4 = freq; active.4 = isOn
+            default: break
+            }
+        }
+
+        params.fingerMode = true
+        params.fingerFrequencies = freqs
+        params.fingerActive = active
+        params.isMuted = fingers.extendedCount == 5  // all fingers up = silence
+
+        detectVibrato(wristY: Float(hand.wrist.y), params: &params)
+    }
+
     // MARK: - Right Hand (Expression)
 
     private func processRightHand(_ hand: HandLandmarks?, params: inout MusicalParameters) {
         guard let right = hand else {
-            params.volume = volumeFilter.smooth(0.0)
+            // In finger mode, default to full volume when right hand absent
+            params.volume = volumeFilter.smooth(params.fingerMode ? 0.8 : 0.0)
             return
         }
 
@@ -118,7 +168,7 @@ class GestureInterpreter: ObservableObject {
 
         switch gesture {
         case .fist:
-            params.isMuted = true
+            if !params.fingerMode { params.isMuted = true }
         case .pinch:
             if sustainEnabled {
                 params.isSustaining = true

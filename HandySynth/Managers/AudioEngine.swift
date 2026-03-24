@@ -37,6 +37,10 @@ class AudioEngine: ObservableObject {
     private var envelopeLevel: Float = 0.0
     private var envelopeActive: Bool = false
 
+    // Finger polyphony state (audio thread only)
+    private var fingerPhases: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
+    private var fingerEnvelopes: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
+
     // Throttle for UI updates
     private var lastDisplayUpdate: CFAbsoluteTime = 0
     private let displayUpdateInterval: CFAbsoluteTime = 1.0 / 15.0
@@ -67,6 +71,11 @@ class AudioEngine: ObservableObject {
         var delayMix: Float = 0.0
         var attackTimeMs: Float = 10.0
         var releaseTimeMs: Float = 100.0
+
+        // Finger-per-note polyphony
+        var fingerMode: Bool = false
+        var fingerFrequencies: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
+        var fingerActive: (Bool, Bool, Bool, Bool, Bool) = (false, false, false, false, false)
     }
 
     init() {
@@ -137,7 +146,10 @@ class AudioEngine: ObservableObject {
     /// Updates audio parameters from the gesture pipeline. Called on background queue.
     func updateParameters(_ params: MusicalParameters) {
         let frequency: Float
-        if let arpFreq = params.arpFrequency {
+        if params.fingerMode {
+            // In finger mode, individual finger frequencies are in fingerFrequencies
+            frequency = params.fingerFrequencies.0 // use first finger for display
+        } else if let arpFreq = params.arpFrequency {
             frequency = arpFreq
         } else if params.isSustaining {
             os_unfair_lock_lock(&paramLock)
@@ -168,6 +180,9 @@ class AudioEngine: ObservableObject {
         audioParams.delayMix = params.delayMix
         audioParams.attackTimeMs = self.attackTimeMs
         audioParams.releaseTimeMs = self.releaseTimeMs
+        audioParams.fingerMode = params.fingerMode
+        audioParams.fingerFrequencies = params.fingerFrequencies
+        audioParams.fingerActive = params.fingerActive
         os_unfair_lock_unlock(&paramLock)
 
         // Update effects on main/caller thread (safe for these properties)
@@ -196,6 +211,10 @@ class AudioEngine: ObservableObject {
         let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
         let channelCount = ablPointer.count
         guard channelCount > 0 else { return noErr }
+
+        if params.fingerMode {
+            return renderFingerMode(params: params, frameCount: frameCount, ablPointer: ablPointer, channelCount: channelCount)
+        }
 
         let targetFreq = params.frequency
         let targetVolume = params.isMuted ? Float(0.0) : params.volume
@@ -281,6 +300,104 @@ class AudioEngine: ObservableObject {
             vibratoPhase += params.vibratoRate / sampleRate
             if vibratoPhase >= 1.0 { vibratoPhase -= 1.0 }
         }
+
+        return noErr
+    }
+
+    /// Renders 5 independent finger oscillators with per-finger envelopes.
+    private func renderFingerMode(params: AudioParams, frameCount: UInt32, ablPointer: UnsafeMutableAudioBufferListPointer, channelCount: Int) -> OSStatus {
+        let attackSamples = max(1.0, params.attackTimeMs * 0.001 * sampleRate)
+        let releaseSamples = max(1.0, params.releaseTimeMs * 0.001 * sampleRate)
+        let attackRate = 1.0 / attackSamples
+        let releaseRate = 1.0 / releaseSamples
+
+        let filterAlpha = AudioConstants.filterMinAlpha + params.filterCutoff * (1.0 - AudioConstants.filterMinAlpha)
+
+        // Unpack tuples to work with in the loop (no heap allocation — stack copies)
+        var fPhases = (fingerPhases.0, fingerPhases.1, fingerPhases.2, fingerPhases.3, fingerPhases.4)
+        var fEnvs = (fingerEnvelopes.0, fingerEnvelopes.1, fingerEnvelopes.2, fingerEnvelopes.3, fingerEnvelopes.4)
+
+        let targetVolume = params.isMuted ? Float(0.0) : params.volume
+
+        for frame in 0..<Int(frameCount) {
+            smoothedVolume += (targetVolume - smoothedVolume) * AudioConstants.volumeSmoothingRate
+
+            let vibratoMod = sinf(2.0 * .pi * vibratoPhase) * params.vibratoDepth * 15.0
+
+            var mix: Float = 0.0
+
+            // Voice 0 (thumb)
+            let active0 = params.fingerActive.0 && !params.isMuted
+            if active0 { fEnvs.0 = min(fEnvs.0 + attackRate, 1.0) } else { fEnvs.0 = max(fEnvs.0 - releaseRate, 0.0) }
+            if fEnvs.0 > 0.0001 {
+                let freq0 = params.fingerFrequencies.0 + vibratoMod
+                mix += sinf(2.0 * .pi * fPhases.0) * fEnvs.0
+                fPhases.0 += freq0 / sampleRate
+                if fPhases.0 >= 1.0 { fPhases.0 -= 1.0 }
+            }
+
+            // Voice 1 (index)
+            let active1 = params.fingerActive.1 && !params.isMuted
+            if active1 { fEnvs.1 = min(fEnvs.1 + attackRate, 1.0) } else { fEnvs.1 = max(fEnvs.1 - releaseRate, 0.0) }
+            if fEnvs.1 > 0.0001 {
+                let freq1 = params.fingerFrequencies.1 + vibratoMod
+                mix += sinf(2.0 * .pi * fPhases.1) * fEnvs.1
+                fPhases.1 += freq1 / sampleRate
+                if fPhases.1 >= 1.0 { fPhases.1 -= 1.0 }
+            }
+
+            // Voice 2 (middle)
+            let active2 = params.fingerActive.2 && !params.isMuted
+            if active2 { fEnvs.2 = min(fEnvs.2 + attackRate, 1.0) } else { fEnvs.2 = max(fEnvs.2 - releaseRate, 0.0) }
+            if fEnvs.2 > 0.0001 {
+                let freq2 = params.fingerFrequencies.2 + vibratoMod
+                mix += sinf(2.0 * .pi * fPhases.2) * fEnvs.2
+                fPhases.2 += freq2 / sampleRate
+                if fPhases.2 >= 1.0 { fPhases.2 -= 1.0 }
+            }
+
+            // Voice 3 (ring)
+            let active3 = params.fingerActive.3 && !params.isMuted
+            if active3 { fEnvs.3 = min(fEnvs.3 + attackRate, 1.0) } else { fEnvs.3 = max(fEnvs.3 - releaseRate, 0.0) }
+            if fEnvs.3 > 0.0001 {
+                let freq3 = params.fingerFrequencies.3 + vibratoMod
+                mix += sinf(2.0 * .pi * fPhases.3) * fEnvs.3
+                fPhases.3 += freq3 / sampleRate
+                if fPhases.3 >= 1.0 { fPhases.3 -= 1.0 }
+            }
+
+            // Voice 4 (little)
+            let active4 = params.fingerActive.4 && !params.isMuted
+            if active4 { fEnvs.4 = min(fEnvs.4 + attackRate, 1.0) } else { fEnvs.4 = max(fEnvs.4 - releaseRate, 0.0) }
+            if fEnvs.4 > 0.0001 {
+                let freq4 = params.fingerFrequencies.4 + vibratoMod
+                mix += sinf(2.0 * .pi * fPhases.4) * fEnvs.4
+                fPhases.4 += freq4 / sampleRate
+                if fPhases.4 >= 1.0 { fPhases.4 -= 1.0 }
+            }
+
+            // Normalize: up to 5 voices summed, scale down to avoid clipping
+            var sample = mix * 0.3
+
+            // One-pole low-pass filter
+            filterState += filterAlpha * (sample - filterState)
+            sample = filterState
+
+            sample *= smoothedVolume
+
+            for ch in 0..<channelCount {
+                if let buffer = ablPointer[ch].mData?.assumingMemoryBound(to: Float.self) {
+                    buffer[frame] = sample
+                }
+            }
+
+            vibratoPhase += params.vibratoRate / sampleRate
+            if vibratoPhase >= 1.0 { vibratoPhase -= 1.0 }
+        }
+
+        // Write back phase/envelope state
+        fingerPhases = fPhases
+        fingerEnvelopes = fEnvs
 
         return noErr
     }

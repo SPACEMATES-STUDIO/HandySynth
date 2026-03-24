@@ -12,6 +12,7 @@ class AppSettings: ObservableObject {
     @AppStorage("portamentoSpeed") var portamentoSpeed = 0.005
     @AppStorage("selectedWaveform") var selectedWaveformRaw = Waveform.sine.rawValue
     @AppStorage("sustainEnabled") var sustainEnabled = true
+    @AppStorage("fingerPerNoteMode") var fingerPerNoteMode = false
 
     // Envelope
     @AppStorage("attackTimeMs") var attackTimeMs = 10.0

@@ -69,6 +69,15 @@ struct SettingsView: View {
                     }
                 }
 
+                GroupBox("Play Mode") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Finger Per Note", isOn: $settings.fingerPerNoteMode)
+                        Text("Each finger plays a scale degree. Hand height selects octave.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 GroupBox("Envelope") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
@@ -175,13 +184,23 @@ struct SettingsView: View {
                 GroupBox("Gestures") {
                     VStack(alignment: .leading, spacing: 10) {
                         Toggle("Sustain (Pinch)", isOn: $settings.sustainEnabled)
+                        Toggle("Finger Per Note", isOn: $settings.fingerPerNoteMode)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            gestureRow("Left Hand Height", "Pitch")
+                            if settings.fingerPerNoteMode {
+                                gestureRow("Thumb", "Root (1st)")
+                                gestureRow("Index", "2nd degree")
+                                gestureRow("Middle", "3rd degree")
+                                gestureRow("Ring", "4th degree")
+                                gestureRow("Little", "5th degree")
+                                gestureRow("Hand Height", "Octave select")
+                            } else {
+                                gestureRow("Left Hand Height", "Pitch")
+                                gestureRow("Point", "Precision pitch")
+                                gestureRow("Pinch", settings.sustainEnabled ? "Sustain note" : "Disabled")
+                            }
                             gestureRow("Right Hand Height", "Volume")
                             gestureRow("Fist", "Mute")
-                            gestureRow("Pinch", settings.sustainEnabled ? "Sustain note" : "Disabled")
-                            gestureRow("Point", "Precision pitch")
                             gestureRow("Peace", "Toggle quantized")
                             gestureRow("Finger Spread", "Filter cutoff")
                             gestureRow("Hand Shake", "Vibrato")
@@ -196,7 +215,7 @@ struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 320, height: 700)
+        .frame(width: 320, height: 820)
     }
 
     private func colorSliders(r: Binding<Double>, g: Binding<Double>, b: Binding<Double>) -> some View {

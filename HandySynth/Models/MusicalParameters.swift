@@ -32,4 +32,9 @@ struct MusicalParameters {
     var reverbMix: Float = 0.2
     var delayMix: Float = 0.0
     var arpFrequency: Float? = nil
+
+    // Finger-per-note polyphony (5 voices, one per finger)
+    var fingerMode: Bool = false
+    var fingerFrequencies: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
+    var fingerActive: (Bool, Bool, Bool, Bool, Bool) = (false, false, false, false, false)
 }

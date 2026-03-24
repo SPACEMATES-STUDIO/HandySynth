@@ -136,6 +136,15 @@ struct ContentView: View {
                 .background(.orange.opacity(0.2))
                 .cornerRadius(4)
                 .opacity(settings.arpEnabled ? 1 : 0)
+
+            Text("FINGER")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.purple)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(.purple.opacity(0.2))
+                .cornerRadius(4)
+                .opacity(settings.fingerPerNoteMode ? 1 : 0)
         }
         .padding(8)
         .background(.black.opacity(0.4))
@@ -183,6 +192,7 @@ struct ContentView: View {
             guard let interpreter = interpreter, let engine = engine, let settings = settings else { return }
             interpreter.sustainEnabled = settings.sustainEnabled
             interpreter.waveformOverride = settings.selectedWaveform
+            interpreter.fingerPerNoteEnabled = settings.fingerPerNoteMode
 
             // Push arpeggiator settings
             let arp = interpreter.arpeggiator
