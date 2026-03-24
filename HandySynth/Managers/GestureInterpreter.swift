@@ -13,6 +13,8 @@ class GestureInterpreter: ObservableObject {
     @Published var displaySustaining: Bool = false
     @Published var displayQuantized: Bool = false
     @Published var displayNoteName: String = ""
+    @Published var displayChordMode: Bool = false
+    @Published var displayBimanualReverb: Bool = false
 
     // Set by pipeline wiring — read on background queue
     var sustainEnabled: Bool = true
@@ -24,6 +26,9 @@ class GestureInterpreter: ObservableObject {
     private let pitchFilter = SmoothingFilter(factor: 0.6)
     private let volumeFilter = SmoothingFilter(factor: 0.5)
     private let filterCutoffFilter = SmoothingFilter(factor: 0.6)
+    private let leftSpreadFilter = SmoothingFilter(factor: 0.6)
+    private let detuneFilter = SmoothingFilter(factor: 0.7)
+    private let bimanualReverbFilter = SmoothingFilter(factor: 0.4)
 
     // Debouncing for discrete gestures
     private let leftDebouncer = GestureDebouncer(requiredFrames: 4)
@@ -50,6 +55,18 @@ class GestureInterpreter: ObservableObject {
         var params = parameters
         processLeftHand(leftHand, params: &params)
         processRightHand(rightHand, params: &params)
+
+        // Feature: bimanual distance → reverb
+        if let left = leftHand, let right = rightHand {
+            let dx = Float(right.wrist.x - left.wrist.x)
+            let dy = Float(right.wrist.y - left.wrist.y)
+            let dist = sqrtf(dx * dx + dy * dy)
+            params.reverbMix = bimanualReverbFilter.smooth(min(max((dist - 0.1) / 0.5, 0.0), 1.0))
+            params.bimanualReverbActive = true
+        } else {
+            params.bimanualReverbActive = false
+        }
+
         params.waveform = waveformOverride
         params.arpFrequency = arpeggiator.process(inputPitch: params.pitch)
         parameters = params
@@ -101,6 +118,16 @@ class GestureInterpreter: ObservableObject {
             let rawPitch = Float(left.wrist.y)
             params.pitch = pitchFilter.smooth(rawPitch)
         }
+
+        // Feature: left-hand spread → chord mode
+        let leftSpread = GestureDetector.fingerSpread(hand: left)
+        params.chordMode = leftSpreadFilter.smooth(leftSpread) > 0.5
+            && gesture != .fist && gesture != .pinch && gesture != .point
+
+        // Feature: left-hand tilt → pad detune depth
+        let tiltAngle = atan2f(Float(left.indexMCP.y - left.littleMCP.y),
+                               Float(left.littleMCP.x - left.indexMCP.x))
+        params.detune = detuneFilter.smooth(min(max(tiltAngle / (.pi / 2), 0.0), 1.0))
 
         detectVibrato(wristY: Float(left.wrist.y), params: &params)
     }
@@ -235,6 +262,8 @@ class GestureInterpreter: ObservableObject {
             self?.displayWaveform = p.waveform
             self?.displaySustaining = p.isSustaining
             self?.displayQuantized = p.isQuantized
+            self?.displayChordMode = p.chordMode
+            self?.displayBimanualReverb = p.bimanualReverbActive
         }
     }
 }

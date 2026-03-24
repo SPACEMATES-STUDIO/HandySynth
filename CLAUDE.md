@@ -86,6 +86,8 @@ HandySynth/
 - **Vision coordinates**: Origin bottom-left, x/y normalized 0–1.
 - **Camera mirroring**: Camera and skeleton views are individually flipped via `.scaleEffect(x: -1, y: 1)` for selfie view. UI elements are not mirrored.
 - **Audio thread safety**: `os_unfair_lock` protects `AudioEngine.audioParams`. No allocations or locks in `renderAudio()` beyond the param copy.
+- **Bimanual reverb**: When both hands are detected, `GestureInterpreter` sets `params.bimanualReverbActive = true` and writes `params.reverbMix` from hand distance. `PipelineCoordinator` skips the settings reverb override when this flag is set — settings value is used only as a fallback when one or both hands are absent.
+- **GestureInterpreter display vars**: `displayChordMode` and `displayBimanualReverb` are `@Published` and throttled to ~15fps alongside the other display properties. They drive the CHORD and REVERB~ status bar badges in `ContentView`.
 
 ## Testing
 
@@ -100,6 +102,11 @@ Manual testing procedure:
 8. Peace sign with right hand — toggles quantized mode
 9. Spread fingers on right hand — filter opens
 10. Shake left hand — vibrato
-11. Enable arpeggiator — hear scale patterns cycling
-12. Toggle visualizer — terrain appears in right half responding to audio
-13. Open settings, change scale/waveform/effects — verify changes apply
+11. Spread left hand fingers — CHORD badge appears, sound gains 3rd + 5th harmonics
+12. Move both hands apart/together — REVERB~ badge appears, reverb depth changes
+13. Select Pad waveform, tilt left hand knuckles up — detune thickens
+14. Select Square waveform — hollow buzzy sound
+15. Select FM waveform, adjust FM Ratio/Depth in settings — bell/metallic tones
+16. Enable arpeggiator — hear scale patterns cycling
+17. Toggle visualizer — terrain appears in right half responding to audio
+18. Open settings, change scale/waveform/effects — verify changes apply

@@ -21,6 +21,29 @@ struct SettingsView: View {
                             }
                             .frame(width: 140)
                         }
+
+                        if settings.selectedWaveform == .fm {
+                            HStack {
+                                Text("FM Ratio")
+                                Slider(value: $settings.fmRatio, in: 0.5...8.0)
+                                Text(String(format: "%.1f", settings.fmRatio))
+                                    .frame(width: 36, alignment: .trailing)
+                                    .font(.caption.monospacedDigit())
+                            }
+                            HStack {
+                                Text("FM Depth")
+                                Slider(value: $settings.fmDepth, in: 0...5.0)
+                                Text(String(format: "%.1f", settings.fmDepth))
+                                    .frame(width: 36, alignment: .trailing)
+                                    .font(.caption.monospacedDigit())
+                            }
+                        }
+
+                        if settings.selectedWaveform == .pad {
+                            Text("Pad detune controlled by left-hand tilt")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
 
@@ -138,6 +161,9 @@ struct SettingsView: View {
                                 .frame(width: 40, alignment: .trailing)
                                 .font(.caption.monospacedDigit())
                         }
+                        Text("Reverb is gesture-controlled when both hands are visible (this value used as fallback).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
                         HStack {
                             Text("Delay")
@@ -184,7 +210,6 @@ struct SettingsView: View {
                 GroupBox("Gestures") {
                     VStack(alignment: .leading, spacing: 10) {
                         Toggle("Sustain (Pinch)", isOn: $settings.sustainEnabled)
-                        Toggle("Finger Per Note", isOn: $settings.fingerPerNoteMode)
 
                         VStack(alignment: .leading, spacing: 6) {
                             if settings.fingerPerNoteMode {
@@ -196,13 +221,16 @@ struct SettingsView: View {
                                 gestureRow("Hand Height", "Octave select")
                             } else {
                                 gestureRow("Left Hand Height", "Pitch")
+                                gestureRow("Left Spread", "Chord (3rd + 5th)")
+                                gestureRow("Left Tilt", "Pad detune depth")
                                 gestureRow("Point", "Precision pitch")
                                 gestureRow("Pinch", settings.sustainEnabled ? "Sustain note" : "Disabled")
                             }
                             gestureRow("Right Hand Height", "Volume")
+                            gestureRow("Right Spread", "Filter cutoff")
+                            gestureRow("Both Hands Apart", "Reverb amount")
                             gestureRow("Fist", "Mute")
                             gestureRow("Peace", "Toggle quantized")
-                            gestureRow("Finger Spread", "Filter cutoff")
                             gestureRow("Hand Shake", "Vibrato")
                         }
                         .font(.caption)
@@ -210,12 +238,22 @@ struct SettingsView: View {
                 }
 
                 GroupBox("Display") {
-                    Toggle("Show Hand Skeleton", isOn: $settings.showHandSkeleton)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Show Hand Skeleton", isOn: $settings.showHandSkeleton)
+                        Toggle("Body Wireframe", isOn: $settings.showBodyWireframe)
+                        Toggle("Hide Camera Feed", isOn: $settings.hideCameraFeed)
+                            .disabled(!settings.showBodyWireframe)
+                        if settings.hideCameraFeed && !settings.showBodyWireframe {
+                            Text("Enable Body Wireframe to hide camera")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             .padding()
         }
-        .frame(width: 320, height: 820)
+        .frame(width: 320, height: 960)
     }
 
     private func colorSliders(r: Binding<Double>, g: Binding<Double>, b: Binding<Double>) -> some View {

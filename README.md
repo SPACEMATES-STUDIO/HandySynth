@@ -10,9 +10,12 @@ A macOS app that turns your hands into a musical instrument — track hand gestu
 ## Features
 
 - **Real-time hand tracking** — Vision framework detects 21 landmarks per hand at 30fps
-- **Four waveforms** — Sine, Triangle, Sawtooth, Pad (5-voice detuned unison)
+- **Six waveforms** — Sine, Triangle, Sawtooth, Square, Pad (5-voice detuned unison), FM synthesis
 - **Five musical scales** — Major, Minor, Pentatonic, Chromatic, Blues with configurable root note
 - **Expressive gestures** — pitch, volume, mute, sustain, precision mode, vibrato, filter cutoff
+- **Chord harmonization** — spread left-hand fingers to add scale-aware 3rd and 5th voices
+- **Bimanual reverb** — move hands apart/together to control reverb in real time
+- **Pad detune** — tilt left hand to control detuning depth of the Pad waveform
 - **Finger-per-note mode** — piano-style polyphony, curl each finger to play its scale degree
 - **Arpeggiator** — scale-aware pattern cycling (up/down/upDown/random) with configurable BPM
 - **Attack/release envelope** — smooth note transitions with adjustable timing
@@ -59,12 +62,15 @@ The camera captures video frames on a background queue. Each frame is processed 
 | Gesture | Hand | Effect |
 |---|---|---|
 | Hand height (up/down) | Left | Pitch — bottom is low, top is high |
+| Finger spread | Left | Chord mode — adds 3rd and 5th scale degrees |
+| Hand tilt | Left | Pad detune depth (tilt knuckles up for wider spread) |
 | Hand height (up/down) | Right | Volume |
+| Finger spread | Right | Filter cutoff (closed = dark, open = bright) |
+| Hands apart | Both | Reverb amount (overrides settings slider) |
 | Fist | Either | Mute |
 | Pinch (thumb + index) | Either | Sustain current note (toggleable in settings) |
 | Point (index finger) | Left | Precision pitch mode (narrow range around current note) |
 | Peace sign | Right | Toggle quantized/chromatic mode |
-| Finger spread | Right | Filter cutoff (closed = dark, open = bright) |
 | Hand shake | Left | Vibrato (depth and rate from motion) |
 
 ### Finger-Per-Note Mode
@@ -122,7 +128,9 @@ HandySynth/
 
 All settings persist across launches. Configurable via the gear icon:
 
-- **Waveform** — Sine, Triangle, Sawtooth, Pad
+- **Waveform** — Sine, Triangle, Sawtooth, Square, Pad, FM
+- **FM Ratio** — carrier-to-modulator frequency ratio (0.5–8.0, visible when FM selected)
+- **FM Depth** — modulation index / harmonic richness (0–5.0, visible when FM selected)
 - **Scale** — Major, Minor, Pentatonic, Chromatic, Blues
 - **Root note** — C through B
 - **Base octave** — 1–5

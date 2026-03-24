@@ -41,6 +41,15 @@ class AudioEngine: ObservableObject {
     private var fingerPhases: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
     private var fingerEnvelopes: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
 
+    // Chord voices (audio thread only)
+    private var chordPhase2: Float = 0.0
+    private var chordPhase3: Float = 0.0
+    private var chordSmoothedFreq2: Float = 440.0
+    private var chordSmoothedFreq3: Float = 440.0
+
+    // FM synthesis (audio thread only)
+    private var modPhase: Float = 0.0
+
     // Throttle for UI updates
     private var lastDisplayUpdate: CFAbsoluteTime = 0
     private let displayUpdateInterval: CFAbsoluteTime = 1.0 / 15.0
@@ -53,6 +62,8 @@ class AudioEngine: ObservableObject {
     var portamentoSpeed: Float = 0.02
     var attackTimeMs: Float = 10.0
     var releaseTimeMs: Float = 100.0
+    var fmRatio: Float = 2.0
+    var fmDepth: Float = 1.0
 
     // Audio tap for visualizer
     var audioTapHandler: (([Float]) -> Void)?
@@ -76,6 +87,18 @@ class AudioEngine: ObservableObject {
         var fingerMode: Bool = false
         var fingerFrequencies: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
         var fingerActive: (Bool, Bool, Bool, Bool, Bool) = (false, false, false, false, false)
+
+        // Chord harmonization
+        var chordMode: Bool = false
+        var chordFreq2: Float = 440.0
+        var chordFreq3: Float = 440.0
+
+        // Pad detune depth (0=unison, 1=full spread)
+        var detune: Float = 0.0
+
+        // FM synthesis
+        var fmRatio: Float = 2.0
+        var fmDepth: Float = 1.0
     }
 
     init() {
@@ -168,6 +191,11 @@ class AudioEngine: ObservableObject {
 
         let volume = params.isMuted ? Float(0.0) : params.volume
 
+        // Chord frequencies — computed on camera queue before lock
+        let chordMode = params.chordMode
+        var cf2: Float = 440; var cf3: Float = 440
+        if chordMode { (cf2, cf3) = computeChordFrequencies(baseFreq: frequency) }
+
         os_unfair_lock_lock(&paramLock)
         audioParams.frequency = frequency
         audioParams.volume = volume
@@ -183,6 +211,12 @@ class AudioEngine: ObservableObject {
         audioParams.fingerMode = params.fingerMode
         audioParams.fingerFrequencies = params.fingerFrequencies
         audioParams.fingerActive = params.fingerActive
+        audioParams.chordMode = chordMode
+        audioParams.chordFreq2 = cf2
+        audioParams.chordFreq3 = cf3
+        audioParams.detune = params.detune
+        audioParams.fmRatio = self.fmRatio
+        audioParams.fmDepth = self.fmDepth
         os_unfair_lock_unlock(&paramLock)
 
         // Update effects on main/caller thread (safe for these properties)
@@ -200,6 +234,28 @@ class AudioEngine: ObservableObject {
                 self?.currentVolume = volume
             }
         }
+    }
+
+    /// Computes scale-aware chord frequencies for the 3rd and 5th above a base frequency.
+    /// Runs on the camera queue inside updateParameters() — never called from the audio thread.
+    private func computeChordFrequencies(baseFreq: Float) -> (Float, Float) {
+        let semitones = scale.semitones
+        guard semitones.count >= 5 else {
+            let baseMidi = ScaleHelper.frequencyToMidiNote(baseFreq)
+            return (ScaleHelper.midiNoteToFrequency(baseMidi + 4),
+                    ScaleHelper.midiNoteToFrequency(baseMidi + 7))
+        }
+        let baseMidi = Int(roundf(ScaleHelper.frequencyToMidiNote(baseFreq)))
+        let rootMidi = (baseOctave + 1) * 12 + rootNote.semitoneOffset
+        let offsetInOctave = ((baseMidi - rootMidi) % 12 + 12) % 12
+        var degreeIndex = 0
+        for (i, st) in semitones.enumerated() { if st <= offsetInOctave { degreeIndex = i } }
+        func midiForDegreeOffset(_ steps: Int) -> Int {
+            let deg = degreeIndex + steps
+            return baseMidi - offsetInOctave + semitones[deg % semitones.count] + (deg / semitones.count) * 12
+        }
+        return (ScaleHelper.midiNoteToFrequency(Float(midiForDegreeOffset(2))),
+                ScaleHelper.midiNoteToFrequency(Float(midiForDegreeOffset(4))))
     }
 
     /// Real-time audio render callback. Runs on the audio thread — no allocations or blocking.
@@ -249,15 +305,29 @@ class AudioEngine: ObservableObject {
             case .sawtooth:
                 sample = 2.0 * (phase - floorf(phase + 0.5))
 
+            case .square:
+                sample = phase < 0.5 ? 1.0 : -1.0
+
+            case .fm:
+                let modSig = sinf(2.0 * .pi * modPhase) * params.fmDepth
+                sample = sinf(2.0 * .pi * phase + modSig)
+                modPhase += freq * params.fmRatio / sampleRate
+                if modPhase >= 1.0 { modPhase -= 1.0 }
+
             case .pad:
-                let detuneAmounts = AudioConstants.padDetuneAmounts
+                let d = params.detune
                 let amps = AudioConstants.padAmplitudes
-                sample = 0
-                for i in 0..<5 {
-                    sample += sinf(2.0 * .pi * padPhases[i]) * amps[i]
-                    padPhases[i] += freq * detuneAmounts[i] / sampleRate
-                    if padPhases[i] >= 1.0 { padPhases[i] -= 1.0 }
-                }
+                sample  = sinf(2.0 * .pi * padPhases[0]) * amps[0]
+                sample += sinf(2.0 * .pi * padPhases[1]) * amps[1]
+                sample += sinf(2.0 * .pi * padPhases[2]) * amps[2]
+                sample += sinf(2.0 * .pi * padPhases[3]) * amps[3]
+                sample += sinf(2.0 * .pi * padPhases[4]) * amps[4]
+                padPhases[0] += freq / sampleRate
+                padPhases[1] += freq * (1.0 + 0.005 * d) / sampleRate
+                padPhases[2] += freq * (1.0 - 0.005 * d) / sampleRate
+                padPhases[3] += freq * (1.0 + 0.010 * d) / sampleRate
+                padPhases[4] += freq * (1.0 - 0.010 * d) / sampleRate
+                for i in 0..<5 { if padPhases[i] >= 1.0 { padPhases[i] -= 1.0 } }
             }
 
             // One-pole low-pass filter
@@ -286,6 +356,19 @@ class AudioEngine: ObservableObject {
             }
 
             sample *= smoothedVolume * envelopeLevel
+
+            // Chord harmonization — two scale-aware sine voices
+            if params.chordMode {
+                chordSmoothedFreq2 += (params.chordFreq2 - chordSmoothedFreq2) * portamentoSpeed
+                chordSmoothedFreq3 += (params.chordFreq3 - chordSmoothedFreq3) * portamentoSpeed
+                let c2 = sinf(2.0 * .pi * chordPhase2) * smoothedVolume * envelopeLevel * 0.4
+                let c3 = sinf(2.0 * .pi * chordPhase3) * smoothedVolume * envelopeLevel * 0.4
+                chordPhase2 += chordSmoothedFreq2 / sampleRate
+                if chordPhase2 >= 1.0 { chordPhase2 -= 1.0 }
+                chordPhase3 += chordSmoothedFreq3 / sampleRate
+                if chordPhase3 >= 1.0 { chordPhase3 -= 1.0 }
+                sample = sample * 0.6 + c2 + c3
+            }
 
             // Write same sample to all channels (stereo)
             for ch in 0..<channelCount {

@@ -13,7 +13,9 @@ enum Waveform: String, CaseIterable, Identifiable {
     case sine = "Sine"
     case triangle = "Triangle"
     case sawtooth = "Sawtooth"
+    case square = "Square"
     case pad = "Pad"
+    case fm = "FM"
 
     var id: String { rawValue }
 }
@@ -37,4 +39,13 @@ struct MusicalParameters {
     var fingerMode: Bool = false
     var fingerFrequencies: (Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0)
     var fingerActive: (Bool, Bool, Bool, Bool, Bool) = (false, false, false, false, false)
+
+    // Chord harmonization (left-hand spread)
+    var chordMode: Bool = false
+
+    // Pad detune depth (left-hand tilt), 0=unison 1=full spread
+    var detune: Float = 0.0
+
+    // When true, reverb is driven by bimanual distance gesture
+    var bimanualReverbActive: Bool = false
 }

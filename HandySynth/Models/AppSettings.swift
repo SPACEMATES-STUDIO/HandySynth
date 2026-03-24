@@ -18,11 +18,19 @@ class AppSettings: ObservableObject {
     @AppStorage("attackTimeMs") var attackTimeMs = 10.0
     @AppStorage("releaseTimeMs") var releaseTimeMs = 100.0
 
+    // FM synthesis
+    @AppStorage("fmRatio") var fmRatio = 2.0
+    @AppStorage("fmDepth") var fmDepth = 1.0
+
     // Arpeggiator
     @AppStorage("arpEnabled") var arpEnabled = false
     @AppStorage("arpBPM") var arpBPM = 120.0
     @AppStorage("arpPattern") var arpPatternRaw = ArpPattern.up.rawValue
     @AppStorage("arpOctaveRange") var arpOctaveRange = 1
+
+    // Display
+    @AppStorage("showBodyWireframe") var showBodyWireframe = false
+    @AppStorage("hideCameraFeed") var hideCameraFeed = false
 
     // Visualizer
     @AppStorage("showVisualizer") var showVisualizer = false
@@ -63,6 +71,16 @@ class AppSettings: ObservableObject {
     var portamentoSpeedFloat: Float {
         get { Float(portamentoSpeed) }
         set { portamentoSpeed = Double(newValue) }
+    }
+
+    var fmRatioFloat: Float {
+        get { Float(fmRatio) }
+        set { fmRatio = Double(newValue) }
+    }
+
+    var fmDepthFloat: Float {
+        get { Float(fmDepth) }
+        set { fmDepth = Double(newValue) }
     }
 
     var arpPattern: ArpPattern {

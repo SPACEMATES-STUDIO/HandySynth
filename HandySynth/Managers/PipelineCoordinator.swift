@@ -54,6 +54,7 @@ class PipelineCoordinator: ObservableObject {
             let settings = self.settings
 
             // Push settings every frame to ensure they're always current
+            self.handTracker.bodyTrackingEnabled = settings.showBodyWireframe
             interpreter.sustainEnabled = settings.sustainEnabled
             interpreter.waveformOverride = settings.selectedWaveform
             interpreter.fingerPerNoteEnabled = settings.fingerPerNoteMode
@@ -76,10 +77,13 @@ class PipelineCoordinator: ObservableObject {
             engine.attackTimeMs = Float(settings.attackTimeMs)
             engine.releaseTimeMs = Float(settings.releaseTimeMs)
 
+            engine.fmRatio = settings.fmRatioFloat
+            engine.fmDepth = settings.fmDepthFloat
+
             interpreter.update(leftHand: left, rightHand: right)
             var params = interpreter.parameters
             if settings.isQuantized { params.isQuantized = true }
-            params.reverbMix = settings.reverbMixFloat
+            if !params.bimanualReverbActive { params.reverbMix = settings.reverbMixFloat }
             params.delayMix = settings.delayMixFloat
             engine.updateParameters(params)
         }
@@ -124,6 +128,9 @@ class PipelineCoordinator: ObservableObject {
     // MARK: - Settings
 
     private func applySettings() {
+        // Body tracking
+        handTracker.bodyTrackingEnabled = settings.showBodyWireframe
+
         // AudioEngine
         audioEngine.scale = settings.selectedScale
         audioEngine.rootNote = settings.rootNote
@@ -132,6 +139,8 @@ class PipelineCoordinator: ObservableObject {
         audioEngine.portamentoSpeed = settings.portamentoSpeedFloat
         audioEngine.attackTimeMs = Float(settings.attackTimeMs)
         audioEngine.releaseTimeMs = Float(settings.releaseTimeMs)
+        audioEngine.fmRatio = settings.fmRatioFloat
+        audioEngine.fmDepth = settings.fmDepthFloat
 
         // GestureInterpreter
         gestureInterpreter.sustainEnabled = settings.sustainEnabled

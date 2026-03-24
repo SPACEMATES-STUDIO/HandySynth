@@ -39,12 +39,23 @@ struct ContentView: View {
         ZStack {
             Color.black
 
-            CameraPreviewView(session: cameraManager.session)
+            if !settings.hideCameraFeed || !settings.showBodyWireframe {
+                CameraPreviewView(session: cameraManager.session)
+                    .scaleEffect(x: -1, y: 1)
+            }
+
+            if settings.showBodyWireframe {
+                BodyWireframeOverlayView(
+                    body_: handTracker.bodyLandmarks,
+                    leftHand: handTracker.leftHand,
+                    rightHand: handTracker.rightHand
+                )
                 .scaleEffect(x: -1, y: 1)
+            }
 
             HandDebugOverlayView(
-                leftHand: settings.showHandSkeleton ? handTracker.leftHand : nil,
-                rightHand: settings.showHandSkeleton ? handTracker.rightHand : nil
+                leftHand: settings.showHandSkeleton && !settings.showBodyWireframe ? handTracker.leftHand : nil,
+                rightHand: settings.showHandSkeleton && !settings.showBodyWireframe ? handTracker.rightHand : nil
             )
             .scaleEffect(x: -1, y: 1)
 
@@ -135,6 +146,24 @@ struct ContentView: View {
                 .background(.purple.opacity(0.2))
                 .cornerRadius(4)
                 .opacity(settings.fingerPerNoteMode ? 1 : 0)
+
+            Text("CHORD")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.mint)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(.mint.opacity(0.2))
+                .cornerRadius(4)
+                .opacity(gestureInterpreter.displayChordMode ? 1 : 0)
+
+            Text("REVERB~")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.blue)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(.blue.opacity(0.2))
+                .cornerRadius(4)
+                .opacity(gestureInterpreter.displayBimanualReverb ? 1 : 0)
         }
         .padding(8)
         .background(.black.opacity(0.4))
@@ -163,6 +192,8 @@ struct ContentView: View {
         case .sine: return "waveform.path"
         case .triangle: return "triangle"
         case .sawtooth: return "waveform"
+        case .square: return "square.on.square"
+        case .fm: return "antenna.radiowaves.left.and.right"
         case .pad: return "waveform.badge.plus"
         }
     }
