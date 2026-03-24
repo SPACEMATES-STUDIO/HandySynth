@@ -59,19 +59,31 @@ The camera captures video frames on a background queue. Each frame is processed 
 
 ### Standard Mode
 
-| Gesture | Hand | Effect |
-|---|---|---|
-| Hand height (up/down) | Left | Pitch — bottom is low, top is high |
-| Finger spread | Left | Chord mode — adds 3rd and 5th scale degrees |
-| Hand tilt | Left | Pad detune depth (tilt knuckles up for wider spread) |
-| Hand height (up/down) | Right | Volume |
-| Finger spread | Right | Filter cutoff (closed = dark, open = bright) |
-| Hands apart | Both | Reverb amount (overrides settings slider) |
-| Fist | Either | Mute |
-| Pinch (thumb + index) | Either | Sustain current note (toggleable in settings) |
-| Point (index finger) | Left | Precision pitch mode (narrow range around current note) |
-| Peace sign | Right | Toggle quantized/chromatic mode |
-| Hand shake | Left | Vibrato (depth and rate from motion) |
+**Left hand — pitch & expression**
+
+| Gesture | Effect |
+|---|---|
+| Hand height (up/down) | Pitch — bottom is low, top is high |
+| Finger spread | Chord mode — adds 3rd and 5th scale degrees |
+| Hand tilt | Pad detune depth (tilt knuckles up for wider spread) |
+| Point (index finger) | Precision pitch mode (narrow range around current note) |
+| Pinch (thumb + index) | Sustain current note (toggleable in settings) |
+| Hand shake | Vibrato (depth and rate from motion) |
+
+**Right hand — volume & effects**
+
+| Gesture | Effect |
+|---|---|
+| Hand height (up/down) | Volume |
+| Finger spread | Filter cutoff (closed = dark, open = bright) |
+| Peace sign | Toggle quantized/chromatic mode |
+| Fist | Mute |
+
+**Both hands**
+
+| Gesture | Effect |
+|---|---|
+| Hands apart | Reverb amount (overrides settings slider) |
 
 ### Finger-Per-Note Mode
 
