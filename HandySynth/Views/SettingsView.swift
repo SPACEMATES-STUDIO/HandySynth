@@ -207,33 +207,40 @@ struct SettingsView: View {
                     }
                 }
 
-                GroupBox("Gestures") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Toggle("Sustain (Pinch)", isOn: $settings.sustainEnabled)
+                GroupBox("Gesture Cheat Sheet") {
+                    VStack(alignment: .leading, spacing: 14) {
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            if settings.fingerPerNoteMode {
-                                gestureRow("Thumb", "Root (1st)")
-                                gestureRow("Index", "2nd degree")
-                                gestureRow("Middle", "3rd degree")
-                                gestureRow("Ring", "4th degree")
-                                gestureRow("Little", "5th degree")
-                                gestureRow("Hand Height", "Octave select")
-                            } else {
-                                gestureRow("Left Hand Height", "Pitch")
-                                gestureRow("Left Spread", "Chord (3rd + 5th)")
-                                gestureRow("Left Tilt", "Pad detune depth")
-                                gestureRow("Point", "Precision pitch")
-                                gestureRow("Pinch", settings.sustainEnabled ? "Sustain note" : "Disabled")
-                            }
-                            gestureRow("Right Hand Height", "Volume")
-                            gestureRow("Right Spread", "Filter cutoff")
-                            gestureRow("Both Hands Apart", "Reverb amount")
-                            gestureRow("Fist", "Mute")
-                            gestureRow("Peace", "Toggle quantized")
-                            gestureRow("Hand Shake", "Vibrato")
+                        if settings.fingerPerNoteMode {
+                            cheatSheetSection("LEFT HAND — Finger Per Note", color: .cyan)
+                            gestureRow("👍 Thumb curled", "Root note (1st degree)")
+                            gestureRow("☝️ Index curled", "2nd degree")
+                            gestureRow("🖕 Middle curled", "3rd degree")
+                            gestureRow("💍 Ring curled", "4th degree")
+                            gestureRow("🤙 Pinky curled", "5th degree")
+                            gestureRow("↕ Hand height", "Select octave")
+                            gestureRow("✊ All fingers up", "Silence")
+                        } else {
+                            cheatSheetSection("LEFT HAND — Pitch & Expression", color: .cyan)
+                            gestureRow("↕ Hand height", "Controls pitch — low = low note, high = high note")
+                            gestureRowBadged("✋ Spread fingers", "Chord mode — adds 3rd & 5th above current note", badge: "CHORD", badgeColor: .mint)
+                            gestureRow("↗ Tilt knuckles", "Pad detune depth — wider tilt = thicker sound (Pad only)")
+                            gestureRow("☝️ Point", "Precision mode — slow, fine pitch control")
+                            gestureRow("🤏 Pinch", settings.sustainEnabled ? "Hold note (sustain)" : "Sustain disabled in settings")
+                            gestureRow("〰 Shake wrist", "Vibrato — speed & depth from motion")
                         }
-                        .font(.caption)
+
+                        cheatSheetSection("RIGHT HAND — Volume & Effects", color: .orange)
+                        gestureRow("↕ Hand height", "Controls volume")
+                        gestureRow("✋ Spread fingers", "Filter brightness — closed = dark, open = bright")
+                        gestureRowBadged("✌️ Peace sign", "Toggle snap-to-scale", badge: "QUANTIZED", badgeColor: .green)
+                        gestureRow("✊ Fist", "Mute")
+
+                        cheatSheetSection("BOTH HANDS", color: .purple)
+                        gestureRowBadged("↔ Move apart", "Real-time reverb — farther = more reverb", badge: "REVERB~", badgeColor: .blue)
+
+                        Toggle("Enable Sustain (Pinch gesture)", isOn: $settings.sustainEnabled)
+                            .font(.caption)
+                            .padding(.top, 4)
                     }
                 }
 
@@ -253,7 +260,7 @@ struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 320, height: 960)
+        .frame(width: 340, height: 1050)
     }
 
     private func colorSliders(r: Binding<Double>, g: Binding<Double>, b: Binding<Double>) -> some View {
@@ -273,13 +280,45 @@ struct SettingsView: View {
         }
     }
 
+    private func cheatSheetSection(_ title: String, color: Color) -> some View {
+        Text(title)
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .foregroundColor(color)
+            .padding(.top, 4)
+    }
+
     private func gestureRow(_ gesture: String, _ action: String) -> some View {
-        HStack {
+        HStack(alignment: .top, spacing: 8) {
             Text(gesture)
-                .fontWeight(.medium)
-                .frame(width: 120, alignment: .leading)
+                .fontWeight(.semibold)
+                .frame(width: 130, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             Text(action)
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .font(.caption)
+    }
+
+    private func gestureRowBadged(_ gesture: String, _ action: String, badge: String, badgeColor: Color) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(gesture)
+                .fontWeight(.semibold)
+                .frame(width: 130, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 4) {
+                Text(action)
+                    .foregroundColor(.secondary)
+                Text(badge)
+                    .fontWeight(.bold)
+                    .foregroundColor(badgeColor)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(badgeColor.opacity(0.15))
+                    .cornerRadius(3)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.caption)
     }
 }
