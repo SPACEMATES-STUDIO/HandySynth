@@ -304,6 +304,24 @@ class AudioEngine: ObservableObject {
         return noErr
     }
 
+    /// Processes a single finger voice oscillator. Audio-thread safe: all value types, no heap.
+    @inline(__always)
+    private func processVoice(
+        phase: inout Float, envelope: inout Float,
+        frequency: Float, isActive: Bool, isMuted: Bool,
+        attackRate: Float, releaseRate: Float,
+        vibratoMod: Float, sampleRate: Float
+    ) -> Float {
+        let active = isActive && !isMuted
+        if active { envelope = min(envelope + attackRate, 1.0) }
+        else { envelope = max(envelope - releaseRate, 0.0) }
+        guard envelope > 0.0001 else { return 0.0 }
+        let sample = sinf(2.0 * .pi * phase) * envelope
+        phase += (frequency + vibratoMod) / sampleRate
+        if phase >= 1.0 { phase -= 1.0 }
+        return sample
+    }
+
     /// Renders 5 independent finger oscillators with per-finger envelopes.
     private func renderFingerMode(params: AudioParams, frameCount: UInt32, ablPointer: UnsafeMutableAudioBufferListPointer, channelCount: Int) -> OSStatus {
         let attackSamples = max(1.0, params.attackTimeMs * 0.001 * sampleRate)
@@ -313,7 +331,6 @@ class AudioEngine: ObservableObject {
 
         let filterAlpha = AudioConstants.filterMinAlpha + params.filterCutoff * (1.0 - AudioConstants.filterMinAlpha)
 
-        // Unpack tuples to work with in the loop (no heap allocation — stack copies)
         var fPhases = (fingerPhases.0, fingerPhases.1, fingerPhases.2, fingerPhases.3, fingerPhases.4)
         var fEnvs = (fingerEnvelopes.0, fingerEnvelopes.1, fingerEnvelopes.2, fingerEnvelopes.3, fingerEnvelopes.4)
 
@@ -321,65 +338,17 @@ class AudioEngine: ObservableObject {
 
         for frame in 0..<Int(frameCount) {
             smoothedVolume += (targetVolume - smoothedVolume) * AudioConstants.volumeSmoothingRate
-
             let vibratoMod = sinf(2.0 * .pi * vibratoPhase) * params.vibratoDepth * 15.0
 
             var mix: Float = 0.0
+            mix += processVoice(phase: &fPhases.0, envelope: &fEnvs.0, frequency: params.fingerFrequencies.0, isActive: params.fingerActive.0, isMuted: params.isMuted, attackRate: attackRate, releaseRate: releaseRate, vibratoMod: vibratoMod, sampleRate: sampleRate)
+            mix += processVoice(phase: &fPhases.1, envelope: &fEnvs.1, frequency: params.fingerFrequencies.1, isActive: params.fingerActive.1, isMuted: params.isMuted, attackRate: attackRate, releaseRate: releaseRate, vibratoMod: vibratoMod, sampleRate: sampleRate)
+            mix += processVoice(phase: &fPhases.2, envelope: &fEnvs.2, frequency: params.fingerFrequencies.2, isActive: params.fingerActive.2, isMuted: params.isMuted, attackRate: attackRate, releaseRate: releaseRate, vibratoMod: vibratoMod, sampleRate: sampleRate)
+            mix += processVoice(phase: &fPhases.3, envelope: &fEnvs.3, frequency: params.fingerFrequencies.3, isActive: params.fingerActive.3, isMuted: params.isMuted, attackRate: attackRate, releaseRate: releaseRate, vibratoMod: vibratoMod, sampleRate: sampleRate)
+            mix += processVoice(phase: &fPhases.4, envelope: &fEnvs.4, frequency: params.fingerFrequencies.4, isActive: params.fingerActive.4, isMuted: params.isMuted, attackRate: attackRate, releaseRate: releaseRate, vibratoMod: vibratoMod, sampleRate: sampleRate)
 
-            // Voice 0 (thumb)
-            let active0 = params.fingerActive.0 && !params.isMuted
-            if active0 { fEnvs.0 = min(fEnvs.0 + attackRate, 1.0) } else { fEnvs.0 = max(fEnvs.0 - releaseRate, 0.0) }
-            if fEnvs.0 > 0.0001 {
-                let freq0 = params.fingerFrequencies.0 + vibratoMod
-                mix += sinf(2.0 * .pi * fPhases.0) * fEnvs.0
-                fPhases.0 += freq0 / sampleRate
-                if fPhases.0 >= 1.0 { fPhases.0 -= 1.0 }
-            }
-
-            // Voice 1 (index)
-            let active1 = params.fingerActive.1 && !params.isMuted
-            if active1 { fEnvs.1 = min(fEnvs.1 + attackRate, 1.0) } else { fEnvs.1 = max(fEnvs.1 - releaseRate, 0.0) }
-            if fEnvs.1 > 0.0001 {
-                let freq1 = params.fingerFrequencies.1 + vibratoMod
-                mix += sinf(2.0 * .pi * fPhases.1) * fEnvs.1
-                fPhases.1 += freq1 / sampleRate
-                if fPhases.1 >= 1.0 { fPhases.1 -= 1.0 }
-            }
-
-            // Voice 2 (middle)
-            let active2 = params.fingerActive.2 && !params.isMuted
-            if active2 { fEnvs.2 = min(fEnvs.2 + attackRate, 1.0) } else { fEnvs.2 = max(fEnvs.2 - releaseRate, 0.0) }
-            if fEnvs.2 > 0.0001 {
-                let freq2 = params.fingerFrequencies.2 + vibratoMod
-                mix += sinf(2.0 * .pi * fPhases.2) * fEnvs.2
-                fPhases.2 += freq2 / sampleRate
-                if fPhases.2 >= 1.0 { fPhases.2 -= 1.0 }
-            }
-
-            // Voice 3 (ring)
-            let active3 = params.fingerActive.3 && !params.isMuted
-            if active3 { fEnvs.3 = min(fEnvs.3 + attackRate, 1.0) } else { fEnvs.3 = max(fEnvs.3 - releaseRate, 0.0) }
-            if fEnvs.3 > 0.0001 {
-                let freq3 = params.fingerFrequencies.3 + vibratoMod
-                mix += sinf(2.0 * .pi * fPhases.3) * fEnvs.3
-                fPhases.3 += freq3 / sampleRate
-                if fPhases.3 >= 1.0 { fPhases.3 -= 1.0 }
-            }
-
-            // Voice 4 (little)
-            let active4 = params.fingerActive.4 && !params.isMuted
-            if active4 { fEnvs.4 = min(fEnvs.4 + attackRate, 1.0) } else { fEnvs.4 = max(fEnvs.4 - releaseRate, 0.0) }
-            if fEnvs.4 > 0.0001 {
-                let freq4 = params.fingerFrequencies.4 + vibratoMod
-                mix += sinf(2.0 * .pi * fPhases.4) * fEnvs.4
-                fPhases.4 += freq4 / sampleRate
-                if fPhases.4 >= 1.0 { fPhases.4 -= 1.0 }
-            }
-
-            // Normalize: up to 5 voices summed, scale down to avoid clipping
             var sample = mix * 0.3
 
-            // One-pole low-pass filter
             filterState += filterAlpha * (sample - filterState)
             sample = filterState
 
@@ -395,7 +364,6 @@ class AudioEngine: ObservableObject {
             if vibratoPhase >= 1.0 { vibratoPhase -= 1.0 }
         }
 
-        // Write back phase/envelope state
         fingerPhases = fPhases
         fingerEnvelopes = fEnvs
 

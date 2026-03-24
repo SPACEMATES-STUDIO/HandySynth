@@ -6,39 +6,29 @@ struct ContentView: View {
     @EnvironmentObject var handTracker: HandTrackingManager
     @EnvironmentObject var gestureInterpreter: GestureInterpreter
     @EnvironmentObject var audioEngine: AudioEngine
+    @EnvironmentObject var coordinator: PipelineCoordinator
 
     @State private var showSettings = false
-    @State private var pipelineReady = false
-    @State private var visualizerRenderer: VisualizerRenderer?
-    @State private var fftAnalyzer: FFTAnalyzer?
 
     var body: some View {
         HStack(spacing: 0) {
             cameraPanel
 
             if settings.showVisualizer {
-                MetalVisualizerView(renderer: $visualizerRenderer, fftAnalyzer: fftAnalyzer)
-                    .onAppear { wireVisualizer() }
-                    .onDisappear { unwireVisualizer() }
+                MetalVisualizerView(renderer: $coordinator.visualizerRenderer, fftAnalyzer: coordinator.fftAnalyzer)
+                    .onAppear { coordinator.wireVisualizer() }
+                    .onDisappear { coordinator.unwireVisualizer() }
             }
         }
         .ignoresSafeArea()
         .task {
-            applySettings()
-            audioEngine.start()
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            wirePipeline()
-            cameraManager.startSession()
-            pipelineReady = true
-        }
-        .onReceive(settings.objectWillChange) { _ in
-            applySettings()
+            await coordinator.start()
         }
         .onChange(of: settings.showVisualizer) { _, newValue in
             if newValue {
-                wireVisualizer()
+                coordinator.wireVisualizer()
             } else {
-                unwireVisualizer()
+                coordinator.unwireVisualizer()
             }
         }
     }
@@ -177,89 +167,4 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Pipeline
-
-    private func wirePipeline() {
-        let interpreter = gestureInterpreter
-        let engine = audioEngine
-        let settings = settings
-
-        cameraManager.frameHandler = { [weak handTracker] buffer in
-            handTracker?.processFrame(buffer)
-        }
-
-        handTracker.onHandsDetected = { [weak interpreter, weak engine, weak settings] left, right in
-            guard let interpreter = interpreter, let engine = engine, let settings = settings else { return }
-            interpreter.sustainEnabled = settings.sustainEnabled
-            interpreter.waveformOverride = settings.selectedWaveform
-            interpreter.fingerPerNoteEnabled = settings.fingerPerNoteMode
-
-            // Push arpeggiator settings
-            let arp = interpreter.arpeggiator
-            arp.enabled = settings.arpEnabled
-            arp.bpm = settings.arpBPM
-            arp.pattern = settings.arpPattern
-            arp.octaveRange = settings.arpOctaveRange
-            arp.scale = settings.selectedScale
-            arp.rootNote = settings.rootNote
-            arp.baseOctave = settings.baseOctave
-            arp.scaleOctaveRange = settings.octaveRange
-
-            interpreter.update(leftHand: left, rightHand: right)
-            var params = interpreter.parameters
-            if settings.isQuantized { params.isQuantized = true }
-            params.reverbMix = settings.reverbMixFloat
-            params.delayMix = settings.delayMixFloat
-            engine.updateParameters(params)
-        }
-    }
-
-    // MARK: - Visualizer Wiring
-
-    private func wireVisualizer() {
-        let analyzer = FFTAnalyzer(fftSize: 1024, bandCount: 32, sampleRate: 44100)
-        fftAnalyzer = analyzer
-
-        audioEngine.audioTapHandler = { samples in
-            analyzer.analyze(samples: samples)
-        }
-
-        updateVisualizerColors()
-    }
-
-    private func unwireVisualizer() {
-        audioEngine.audioTapHandler = nil
-        fftAnalyzer = nil
-    }
-
-    private func updateVisualizerColors() {
-        guard let renderer = visualizerRenderer else { return }
-        renderer.colorPrimary = SIMD4<Float>(
-            Float(settings.vizColorPrimaryR),
-            Float(settings.vizColorPrimaryG),
-            Float(settings.vizColorPrimaryB),
-            1.0
-        )
-        renderer.colorSecondary = SIMD4<Float>(
-            Float(settings.vizColorSecondaryR),
-            Float(settings.vizColorSecondaryG),
-            Float(settings.vizColorSecondaryB),
-            1.0
-        )
-        renderer.spectrumHeight = Float(settings.vizTerrainHeight)
-        renderer.spacing = Float(settings.vizTerrainSpacing)
-    }
-
-    // MARK: - Settings
-
-    private func applySettings() {
-        audioEngine.scale = settings.selectedScale
-        audioEngine.rootNote = settings.rootNote
-        audioEngine.baseOctave = settings.baseOctave
-        audioEngine.octaveRange = settings.octaveRange
-        audioEngine.portamentoSpeed = settings.portamentoSpeedFloat
-        audioEngine.attackTimeMs = Float(settings.attackTimeMs)
-        audioEngine.releaseTimeMs = Float(settings.releaseTimeMs)
-        updateVisualizerColors()
-    }
 }

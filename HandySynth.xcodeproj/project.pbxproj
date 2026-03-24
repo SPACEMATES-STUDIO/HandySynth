@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		925869D92F72706A00F36EBE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 925869D82F72706A00F36EBE /* Assets.xcassets */; };
 		AA0000000000000000000040 /* HandySynthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000020 /* HandySynthApp.swift */; };
 		AA0000000000000000000041 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000021 /* CameraManager.swift */; };
 		AA0000000000000000000042 /* HandTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000022 /* HandTrackingManager.swift */; };
@@ -30,9 +31,11 @@
 		AA0000000000000000000072 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000063 /* Shaders.metal */; };
 		AA0000000000000000000073 /* VisualizerRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000064 /* VisualizerRenderer.swift */; };
 		AA0000000000000000000074 /* MetalVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000065 /* MetalVisualizerView.swift */; };
+		AA0000000000000000000080 /* PipelineCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000081 /* PipelineCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		925869D82F72706A00F36EBE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0000000000000000000004 /* HandySynth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HandySynth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000020 /* HandySynthApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandySynthApp.swift; sourceTree = "<group>"; };
 		AA0000000000000000000021 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
@@ -61,6 +64,7 @@
 		AA0000000000000000000064 /* VisualizerRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizerRenderer.swift; sourceTree = "<group>"; };
 		AA0000000000000000000065 /* MetalVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalVisualizerView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000066 /* HandySynth-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "HandySynth-Bridging-Header.h"; sourceTree = "<group>"; };
+		AA0000000000000000000081 /* PipelineCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineCoordinator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,7 +78,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		AA0000000000000000000002 /* root */ = {
+		AA0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000017 /* HandySynth */,
@@ -88,22 +92,6 @@
 				AA0000000000000000000004 /* HandySynth.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		AA0000000000000000000017 /* HandySynth */ = {
-			isa = PBXGroup;
-			children = (
-				AA0000000000000000000010 /* App */,
-				AA0000000000000000000011 /* Managers */,
-				AA0000000000000000000012 /* Models */,
-				AA0000000000000000000013 /* Views */,
-				AA0000000000000000000016 /* Metal */,
-				AA0000000000000000000014 /* Utilities */,
-				AA0000000000000000000015 /* Resources */,
-				AA0000000000000000000032 /* HandySynth.entitlements */,
-				AA0000000000000000000066 /* HandySynth-Bridging-Header.h */,
-			);
-			path = HandySynth;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000010 /* App */ = {
@@ -123,6 +111,7 @@
 				AA0000000000000000000024 /* AudioEngine.swift */,
 				AA0000000000000000000060 /* Arpeggiator.swift */,
 				AA0000000000000000000061 /* FFTAnalyzer.swift */,
+				AA0000000000000000000081 /* PipelineCoordinator.swift */,
 			);
 			path = Managers;
 			sourceTree = "<group>";
@@ -180,6 +169,23 @@
 			path = Metal;
 			sourceTree = "<group>";
 		};
+		AA0000000000000000000017 /* HandySynth */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000010 /* App */,
+				AA0000000000000000000011 /* Managers */,
+				AA0000000000000000000012 /* Models */,
+				AA0000000000000000000013 /* Views */,
+				AA0000000000000000000016 /* Metal */,
+				AA0000000000000000000014 /* Utilities */,
+				AA0000000000000000000015 /* Resources */,
+				AA0000000000000000000032 /* HandySynth.entitlements */,
+				AA0000000000000000000066 /* HandySynth-Bridging-Header.h */,
+				925869D82F72706A00F36EBE /* Assets.xcassets */,
+			);
+			path = HandySynth;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -223,7 +229,7 @@
 				en,
 				Base,
 			);
-			mainGroup = AA0000000000000000000002 /* root */;
+			mainGroup = AA0000000000000000000002;
 			productRefGroup = AA0000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -238,6 +244,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				925869D92F72706A00F36EBE /* Assets.xcassets in Resources */,
 				AA0000000000000000000051 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -271,6 +278,7 @@
 				AA0000000000000000000072 /* Shaders.metal in Sources */,
 				AA0000000000000000000073 /* VisualizerRenderer.swift in Sources */,
 				AA0000000000000000000074 /* MetalVisualizerView.swift in Sources */,
+				AA0000000000000000000080 /* PipelineCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -406,9 +414,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HandySynth/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSCameraUsageDescription = "HandySynth needs camera access to track your hand movements for musical control.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -435,9 +443,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HandySynth/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSCameraUsageDescription = "HandySynth needs camera access to track your hand movements for musical control.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
