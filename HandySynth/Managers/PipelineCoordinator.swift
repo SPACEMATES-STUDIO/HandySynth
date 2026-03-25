@@ -58,6 +58,12 @@ class PipelineCoordinator: ObservableObject {
             interpreter.sustainEnabled = settings.sustainEnabled
             interpreter.waveformOverride = settings.selectedWaveform
             interpreter.fingerPerNoteEnabled = settings.fingerPerNoteMode
+            interpreter.chordGestureEnabled = settings.chordGestureEnabled
+            interpreter.detuneGestureEnabled = settings.detuneGestureEnabled
+            interpreter.distortionGestureEnabled = settings.distortionGestureEnabled
+            interpreter.vibratoEnabled = settings.vibratoEnabled
+            interpreter.filterGestureEnabled = settings.filterGestureEnabled
+            interpreter.bimanualGestureEnabled = settings.bimanualGestureEnabled
 
             let arp = interpreter.arpeggiator
             arp.enabled = settings.arpEnabled
@@ -159,6 +165,12 @@ class PipelineCoordinator: ObservableObject {
         gestureInterpreter.sustainEnabled = settings.sustainEnabled
         gestureInterpreter.waveformOverride = settings.selectedWaveform
         gestureInterpreter.fingerPerNoteEnabled = settings.fingerPerNoteMode
+        gestureInterpreter.chordGestureEnabled = settings.chordGestureEnabled
+        gestureInterpreter.detuneGestureEnabled = settings.detuneGestureEnabled
+        gestureInterpreter.distortionGestureEnabled = settings.distortionGestureEnabled
+        gestureInterpreter.vibratoEnabled = settings.vibratoEnabled
+        gestureInterpreter.filterGestureEnabled = settings.filterGestureEnabled
+        gestureInterpreter.bimanualGestureEnabled = settings.bimanualGestureEnabled
 
         // Arpeggiator
         let arp = gestureInterpreter.arpeggiator

@@ -229,7 +229,7 @@ struct SettingsView: View {
                 }
 
                 GroupBox("Gesture Cheat Sheet") {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) {
 
                         if settings.fingerPerNoteMode {
                             cheatSheetSection("LEFT HAND — Finger Per Note", color: .cyan)
@@ -243,27 +243,24 @@ struct SettingsView: View {
                         } else {
                             cheatSheetSection("LEFT HAND — Pitch & Expression", color: .cyan)
                             gestureRow("↕ Hand height", "Controls pitch — low = low note, high = high note")
-                            gestureRowBadged("✋ Spread fingers", "Chord mode — adds 3rd & 5th above current note", badge: "CHORD", badgeColor: .mint)
-                            gestureRow("↗ Tilt knuckles", "Pad detune depth — wider tilt = thicker sound (Pad only)")
+                            gestureToggleRow("✋ Spread fingers", "Chord — adds 3rd & 5th above current note", isOn: $settings.chordGestureEnabled)
+                            gestureToggleRow("↗ Tilt knuckles", "Pad detune — wider tilt = thicker sound (Pad only)", isOn: $settings.detuneGestureEnabled)
+                            gestureToggleRow("✊ Curl fingers", "Overdrive — 4 fingers open = clean, curl = grit", isOn: $settings.distortionGestureEnabled)
                             gestureRow("☝️ Point", "Precision mode — slow, fine pitch control")
-                            gestureRow("🤏 Pinch", settings.sustainEnabled ? "Hold note (sustain)" : "Sustain disabled in settings")
-                            gestureRow("✊ Curl fingers", "Overdrive — 4 fingers open = clean, curl down = grit")
-                            gestureRow("〰 Shake wrist", "Vibrato — speed & depth from motion")
+                            gestureToggleRow("🤏 Pinch", "Hold note (sustain)", isOn: $settings.sustainEnabled)
+                            gestureToggleRow("〰 Shake wrist", "Vibrato — speed & depth from motion", isOn: $settings.vibratoEnabled)
                         }
 
                         cheatSheetSection("RIGHT HAND — Volume & Effects", color: .orange)
                         gestureRow("↕ Hand height", "Controls volume")
-                        gestureRow("✋ Spread fingers", "Filter brightness — closed = dark, open = bright")
-                        gestureRowBadged("✌️ Peace sign", "Toggle snap-to-scale", badge: "QUANTIZED", badgeColor: .green)
+                        gestureToggleRow("✋ Spread fingers", "Filter brightness — closed = dark, open = bright", isOn: $settings.filterGestureEnabled)
+                        gestureRow("✌️ Peace sign", "Toggle snap-to-scale (quantized mode)")
                         gestureRow("✊ Fist", "Mute")
 
                         cheatSheetSection("BOTH HANDS", color: .purple)
-                        gestureRowBadged("↔ Move apart", bimanualCheatSheetDescription,
-                                         badge: bimanualCheatSheetBadge, badgeColor: bimanualCheatSheetColor)
-
-                        Toggle("Enable Sustain (Pinch gesture)", isOn: $settings.sustainEnabled)
-                            .font(.caption)
-                            .padding(.top, 4)
+                        gestureToggleBadgedRow("↔ Move apart", bimanualCheatSheetDescription,
+                                               badge: bimanualCheatSheetBadge, badgeColor: bimanualCheatSheetColor,
+                                               isOn: $settings.bimanualGestureEnabled)
                     }
                 }
 
@@ -342,6 +339,41 @@ struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.caption)
+    }
+
+    private func gestureToggleRow(_ gesture: String, _ action: String, isOn: Binding<Bool>) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(gesture).fontWeight(.semibold)
+                Text(action).foregroundColor(.secondary)
+            }
+            Spacer()
+            Toggle("", isOn: isOn).labelsHidden().scaleEffect(0.75)
+        }
+        .font(.caption)
+        .opacity(isOn.wrappedValue ? 1.0 : 0.4)
+    }
+
+    private func gestureToggleBadgedRow(_ gesture: String, _ action: String, badge: String, badgeColor: Color, isOn: Binding<Bool>) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(gesture).fontWeight(.semibold)
+                HStack(spacing: 4) {
+                    Text(action).foregroundColor(.secondary)
+                    Text(badge)
+                        .fontWeight(.bold)
+                        .foregroundColor(badgeColor)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(badgeColor.opacity(0.15))
+                        .cornerRadius(3)
+                }
+            }
+            Spacer()
+            Toggle("", isOn: isOn).labelsHidden().scaleEffect(0.75)
+        }
+        .font(.caption)
+        .opacity(isOn.wrappedValue ? 1.0 : 0.4)
     }
 
     private func gestureRowBadged(_ gesture: String, _ action: String, badge: String, badgeColor: Color) -> some View {

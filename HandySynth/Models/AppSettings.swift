@@ -34,6 +34,14 @@ class AppSettings: ObservableObject {
     @AppStorage("arpPattern") var arpPatternRaw = ArpPattern.up.rawValue
     @AppStorage("arpOctaveRange") var arpOctaveRange = 1
 
+    // Gesture enable toggles
+    @AppStorage("chordGestureEnabled") var chordGestureEnabled = true
+    @AppStorage("detuneGestureEnabled") var detuneGestureEnabled = true
+    @AppStorage("distortionGestureEnabled") var distortionGestureEnabled = true
+    @AppStorage("vibratoEnabled") var vibratoEnabled = true
+    @AppStorage("filterGestureEnabled") var filterGestureEnabled = true
+    @AppStorage("bimanualGestureEnabled") var bimanualGestureEnabled = true
+
     // Bimanual gesture target
     @AppStorage("bimanualTarget") var bimanualTargetRaw = BimanualTarget.reverb.rawValue
 

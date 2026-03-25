@@ -20,6 +20,12 @@ class GestureInterpreter: ObservableObject {
     var sustainEnabled: Bool = true
     var waveformOverride: Waveform = .sine
     var fingerPerNoteEnabled: Bool = false
+    var chordGestureEnabled: Bool = true
+    var detuneGestureEnabled: Bool = true
+    var distortionGestureEnabled: Bool = true
+    var vibratoEnabled: Bool = true
+    var filterGestureEnabled: Bool = true
+    var bimanualGestureEnabled: Bool = true
     let arpeggiator = Arpeggiator()
 
     // Smoothing filters for continuous parameters
@@ -57,8 +63,8 @@ class GestureInterpreter: ObservableObject {
         processLeftHand(leftHand, params: &params)
         processRightHand(rightHand, params: &params)
 
-        // Feature: bimanual distance → reverb
-        if let left = leftHand, let right = rightHand {
+        // Feature: bimanual distance → configurable effect
+        if bimanualGestureEnabled, let left = leftHand, let right = rightHand {
             let dx = Float(right.wrist.x - left.wrist.x)
             let dy = Float(right.wrist.y - left.wrist.y)
             let dist = sqrtf(dx * dx + dy * dy)
@@ -123,20 +129,37 @@ class GestureInterpreter: ObservableObject {
 
         // Feature: left-hand spread → chord mode
         let leftSpread = GestureDetector.fingerSpread(hand: left)
-        params.chordMode = leftSpreadFilter.smooth(leftSpread) > 0.5
-            && gesture != .fist && gesture != .pinch && gesture != .point
+        if chordGestureEnabled {
+            params.chordMode = leftSpreadFilter.smooth(leftSpread) > 0.5
+                && gesture != .fist && gesture != .pinch && gesture != .point
+        } else {
+            params.chordMode = false
+        }
 
         // Feature: left-hand tilt → pad detune depth
-        let tiltAngle = atan2f(Float(left.indexMCP.y - left.littleMCP.y),
-                               Float(left.littleMCP.x - left.indexMCP.x))
-        params.detune = detuneFilter.smooth(min(max(tiltAngle / (.pi / 2), 0.0), 1.0))
+        if detuneGestureEnabled {
+            let tiltAngle = atan2f(Float(left.indexMCP.y - left.littleMCP.y),
+                                   Float(left.littleMCP.x - left.indexMCP.x))
+            params.detune = detuneFilter.smooth(min(max(tiltAngle / (.pi / 2), 0.0), 1.0))
+        } else {
+            params.detune = detuneFilter.smooth(0)
+        }
 
         // Feature: left-hand finger closure → distortion (4+ extended = clean, curl down for drive)
-        let extendedCount = FingerState.from(left).extendedCount
-        let rawDistortion = min(1.0, Float(max(0, 4 - extendedCount)) / 3.0)
-        params.distortion = distortionFilter.smooth(gesture == .fist ? 0 : rawDistortion)
+        if distortionGestureEnabled {
+            let extendedCount = FingerState.from(left).extendedCount
+            let rawDistortion = min(1.0, Float(max(0, 4 - extendedCount)) / 3.0)
+            params.distortion = distortionFilter.smooth(gesture == .fist ? 0 : rawDistortion)
+        } else {
+            params.distortion = distortionFilter.smooth(0)
+        }
 
-        detectVibrato(wristY: Float(left.wrist.y), params: &params)
+        if vibratoEnabled {
+            detectVibrato(wristY: Float(left.wrist.y), params: &params)
+        } else {
+            params.vibratoDepth = 0
+            wristYHistory.removeAll()
+        }
     }
 
     // MARK: - Finger Per Note
@@ -198,7 +221,9 @@ class GestureInterpreter: ObservableObject {
         params.volume = volumeFilter.smooth(min(max(rawVolume, 0.0), 1.0))
 
         let spread = GestureDetector.fingerSpread(hand: right)
-        params.filterCutoff = filterCutoffFilter.smooth(spread)
+        params.filterCutoff = filterGestureEnabled
+            ? filterCutoffFilter.smooth(spread)
+            : filterCutoffFilter.smooth(1.0)
 
         switch gesture {
         case .fist:
