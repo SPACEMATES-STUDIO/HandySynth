@@ -359,6 +359,12 @@ class AudioEngine: ObservableObject {
                 envelopeLevel = 0.0
             }
 
+            // Hard-clip distortion — applied pre-envelope so it saturates the raw waveform
+            if params.distortion > 0.001 {
+                let drive = 1.0 + params.distortion * 29.0  // 1x to 30x gain
+                sample = max(-1.0, min(1.0, sample * drive))
+            }
+
             sample *= smoothedVolume * envelopeLevel
 
             // Chord harmonization — two scale-aware sine voices
@@ -372,12 +378,6 @@ class AudioEngine: ObservableObject {
                 chordPhase3 += chordSmoothedFreq3 / sampleRate
                 if chordPhase3 >= 1.0 { chordPhase3 -= 1.0 }
                 sample = sample * 0.6 + c2 + c3
-            }
-
-            // Soft distortion (tanh waveshaping — hands apart drives amount)
-            if params.distortion > 0.001 {
-                let drive = 1.0 + params.distortion * 9.0  // 1x to 10x gain
-                sample = tanhf(sample * drive) / tanhf(drive)
             }
 
             // Write same sample to all channels (stereo)
