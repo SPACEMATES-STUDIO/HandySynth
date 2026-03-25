@@ -9,7 +9,7 @@ struct SettingsView: View {
                 Text("Settings")
                     .font(.title2.bold())
 
-                GroupBox("Sound") {
+                GroupBox("Synth") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("Waveform")
@@ -39,10 +39,21 @@ struct SettingsView: View {
                             }
                         }
 
-                        if settings.selectedWaveform == .pad {
-                            Text("Pad detune controlled by left-hand tilt")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        Toggle("Finger Per Note", isOn: $settings.fingerPerNoteMode)
+
+                        HStack {
+                            Text("Attack")
+                            Slider(value: $settings.attackTimeMs, in: 0...500)
+                            Text("\(Int(settings.attackTimeMs))ms")
+                                .frame(width: 50, alignment: .trailing)
+                                .font(.caption.monospacedDigit())
+                        }
+                        HStack {
+                            Text("Release")
+                            Slider(value: $settings.releaseTimeMs, in: 0...2000)
+                            Text("\(Int(settings.releaseTimeMs))ms")
+                                .frame(width: 50, alignment: .trailing)
+                                .font(.caption.monospacedDigit())
                         }
                     }
                 }
@@ -88,34 +99,8 @@ struct SettingsView: View {
                         HStack {
                             Text("Portamento")
                             Slider(value: $settings.portamentoSpeed, in: 0.001...0.05)
-                        }
-                    }
-                }
-
-                GroupBox("Play Mode") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Toggle("Finger Per Note", isOn: $settings.fingerPerNoteMode)
-                        Text("Each finger plays a scale degree. Hand height selects octave.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                GroupBox("Envelope") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Attack")
-                            Slider(value: $settings.attackTimeMs, in: 0...500)
-                            Text("\(Int(settings.attackTimeMs))ms")
-                                .frame(width: 50, alignment: .trailing)
-                                .font(.caption.monospacedDigit())
-                        }
-
-                        HStack {
-                            Text("Release")
-                            Slider(value: $settings.releaseTimeMs, in: 0...2000)
-                            Text("\(Int(settings.releaseTimeMs))ms")
-                                .frame(width: 50, alignment: .trailing)
+                            Text("\(Int((settings.portamentoSpeed - 0.001) / 0.049 * 100))%")
+                                .frame(width: 36, alignment: .trailing)
                                 .font(.caption.monospacedDigit())
                         }
                     }
@@ -125,37 +110,38 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Toggle("Enabled", isOn: $settings.arpEnabled)
 
-                        HStack {
-                            Text("BPM")
-                            Slider(value: $settings.arpBPM, in: 60...300)
-                            Text("\(Int(settings.arpBPM))")
-                                .frame(width: 36, alignment: .trailing)
-                                .font(.caption.monospacedDigit())
-                        }
-
-                        HStack {
-                            Text("Pattern")
-                            Spacer()
-                            Picker("", selection: $settings.arpPatternRaw) {
-                                ForEach(ArpPattern.allCases) { pattern in
-                                    Text(pattern.rawValue).tag(pattern.rawValue)
-                                }
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("BPM")
+                                Slider(value: $settings.arpBPM, in: 60...300)
+                                Text("\(Int(settings.arpBPM))")
+                                    .frame(width: 36, alignment: .trailing)
+                                    .font(.caption.monospacedDigit())
                             }
-                            .frame(width: 120)
+                            HStack {
+                                Text("Pattern")
+                                Spacer()
+                                Picker("", selection: $settings.arpPatternRaw) {
+                                    ForEach(ArpPattern.allCases) { pattern in
+                                        Text(pattern.rawValue).tag(pattern.rawValue)
+                                    }
+                                }
+                                .frame(width: 120)
+                            }
+                            HStack {
+                                Text("Octaves: \(settings.arpOctaveRange)")
+                                Spacer()
+                                Stepper("", value: $settings.arpOctaveRange, in: 1...3)
+                            }
                         }
-
-                        HStack {
-                            Text("Octaves: \(settings.arpOctaveRange)")
-                            Spacer()
-                            Stepper("", value: $settings.arpOctaveRange, in: 1...3)
-                        }
+                        .opacity(settings.arpEnabled ? 1 : 0.35)
                     }
                 }
 
                 GroupBox("Effects") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text("Both Hands →")
+                            Text("Hands Apart →")
                             Spacer()
                             Picker("", selection: $settings.bimanualTargetRaw) {
                                 ForEach(BimanualTarget.allCases) { target in
@@ -164,9 +150,6 @@ struct SettingsView: View {
                             }
                             .frame(width: 140)
                         }
-                        Text("Moving both hands apart sweeps this effect in real time.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
 
                         HStack {
                             Text("Reverb")
@@ -175,12 +158,6 @@ struct SettingsView: View {
                                 .frame(width: 40, alignment: .trailing)
                                 .font(.caption.monospacedDigit())
                         }
-                        if settings.bimanualTarget == .reverb {
-                            Text("Fallback when only one hand is visible.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
                         HStack {
                             Text("Delay")
                             Slider(value: $settings.delayMix, in: 0...1)
@@ -188,11 +165,9 @@ struct SettingsView: View {
                                 .frame(width: 40, alignment: .trailing)
                                 .font(.caption.monospacedDigit())
                         }
-                        if settings.bimanualTarget == .delay {
-                            Text("Fallback when only one hand is visible.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Text("Reverb and Delay sliders are fallbacks when both-hands gesture is active.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -200,31 +175,29 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Toggle("Show Visualizer", isOn: $settings.showVisualizer)
 
-                        HStack {
-                            Text("Terrain Height")
-                            Slider(value: $settings.vizTerrainHeight, in: 200...2000)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Terrain Height")
+                                Slider(value: $settings.vizTerrainHeight, in: 200...2000)
+                            }
+                            HStack {
+                                Text("Spacing")
+                                Slider(value: $settings.vizTerrainSpacing, in: 5...60)
+                            }
+                            Text("Primary Color").font(.caption.bold())
+                            colorSliders(
+                                r: $settings.vizColorPrimaryR,
+                                g: $settings.vizColorPrimaryG,
+                                b: $settings.vizColorPrimaryB
+                            )
+                            Text("Secondary Color").font(.caption.bold())
+                            colorSliders(
+                                r: $settings.vizColorSecondaryR,
+                                g: $settings.vizColorSecondaryG,
+                                b: $settings.vizColorSecondaryB
+                            )
                         }
-
-                        HStack {
-                            Text("Spacing")
-                            Slider(value: $settings.vizTerrainSpacing, in: 5...60)
-                        }
-
-                        Text("Primary Color")
-                            .font(.caption.bold())
-                        colorSliders(
-                            r: $settings.vizColorPrimaryR,
-                            g: $settings.vizColorPrimaryG,
-                            b: $settings.vizColorPrimaryB
-                        )
-
-                        Text("Secondary Color")
-                            .font(.caption.bold())
-                        colorSliders(
-                            r: $settings.vizColorSecondaryR,
-                            g: $settings.vizColorSecondaryG,
-                            b: $settings.vizColorSecondaryB
-                        )
+                        .opacity(settings.showVisualizer ? 1 : 0.35)
                     }
                 }
 
@@ -280,7 +253,7 @@ struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 340, height: 1050)
+        .frame(width: 340, height: 980)
     }
 
     private func colorSliders(r: Binding<Double>, g: Binding<Double>, b: Binding<Double>) -> some View {
@@ -376,25 +349,4 @@ struct SettingsView: View {
         .opacity(isOn.wrappedValue ? 1.0 : 0.4)
     }
 
-    private func gestureRowBadged(_ gesture: String, _ action: String, badge: String, badgeColor: Color) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(gesture)
-                .fontWeight(.semibold)
-                .frame(width: 130, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 4) {
-                Text(action)
-                    .foregroundColor(.secondary)
-                Text(badge)
-                    .fontWeight(.bold)
-                    .foregroundColor(badgeColor)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(badgeColor.opacity(0.15))
-                    .cornerRadius(3)
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .font(.caption)
-    }
 }
