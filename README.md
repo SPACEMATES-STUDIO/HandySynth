@@ -13,14 +13,17 @@ A macOS app that turns your hands into a musical instrument — track hand gestu
 - **Six waveforms** — Sine, Triangle, Sawtooth, Square, Pad (5-voice detuned unison), FM synthesis
 - **Five musical scales** — Major, Minor, Pentatonic, Chromatic, Blues with configurable root note
 - **Expressive gestures** — pitch, volume, mute, sustain, precision mode, vibrato, filter cutoff
+- **Overdrive** — curl left-hand fingers to add cubic soft-clip distortion
 - **Chord harmonization** — spread left-hand fingers to add scale-aware 3rd and 5th voices
-- **Bimanual reverb** — move hands apart/together to control reverb in real time
+- **Bimanual effect control** — move hands apart/together to sweep Reverb or Delay in real time
 - **Pad detune** — tilt left hand to control detuning depth of the Pad waveform
 - **Finger-per-note mode** — piano-style polyphony, curl each finger to play its scale degree
 - **Arpeggiator** — scale-aware pattern cycling (up/down/upDown/random) with configurable BPM
 - **Attack/release envelope** — smooth note transitions with adjustable timing
+- **Body wireframe overlay** — 3D rigged model driven by Vision body pose tracking
 - **Metal terrain visualizer** — FFT-driven scrolling mountain ridges in a toggleable split view
 - **Effects** — Reverb and delay with adjustable mix
+- **Per-gesture toggles** — enable/disable individual gestures in settings to avoid conflicts
 - **Low latency** — ~50-60ms end-to-end (camera to audio output)
 - **Zero external dependencies** — pure SwiftUI + AVFoundation + Vision + Metal
 
@@ -61,29 +64,31 @@ The camera captures video frames on a background queue. Each frame is processed 
 
 **Left hand — pitch & expression**
 
-| Gesture | Effect |
-|---|---|
-| Hand height (up/down) | Pitch — bottom is low, top is high |
-| Finger spread | Chord mode — adds 3rd and 5th scale degrees |
-| Hand tilt | Pad detune depth (tilt knuckles up for wider spread) |
-| Point (index finger) | Precision pitch mode (narrow range around current note) |
-| Pinch (thumb + index) | Sustain current note (toggleable in settings) |
-| Hand shake | Vibrato (depth and rate from motion) |
+| Gesture | Effect | Toggleable |
+|---|---|---|
+| Hand height (up/down) | Pitch — bottom is low, top is high | |
+| Finger spread | Chord mode — adds 3rd and 5th scale degrees | ✓ |
+| Finger curl (4→1 extended) | Overdrive — 4 open = clean, curl down = grit | ✓ |
+| Hand tilt | Pad detune depth (tilt knuckles up for wider spread) | ✓ |
+| Point (index finger) | Precision pitch mode (narrow range around current note) | |
+| Pinch (thumb + index) | Sustain current note | ✓ |
+| Hand shake | Vibrato (depth and rate from motion) | ✓ |
+| Fist | Mute | |
 
 **Right hand — volume & effects**
 
-| Gesture | Effect |
-|---|---|
-| Hand height (up/down) | Volume |
-| Finger spread | Filter cutoff (closed = dark, open = bright) |
-| Peace sign | Toggle quantized/chromatic mode |
-| Fist | Mute |
+| Gesture | Effect | Toggleable |
+|---|---|---|
+| Hand height (up/down) | Volume | |
+| Finger spread | Filter cutoff (closed = dark, open = bright) | ✓ |
+| Peace sign | Toggle quantized/chromatic mode | |
+| Fist | Mute | |
 
 **Both hands**
 
-| Gesture | Effect |
-|---|---|
-| Hands apart | Reverb amount (overrides settings slider) |
+| Gesture | Effect | Toggleable |
+|---|---|---|
+| Hands apart | Sweeps Reverb or Delay (configurable in settings) | ✓ |
 
 ### Finger-Per-Note Mode
 
@@ -103,10 +108,11 @@ Piano-style polyphony — curl a finger down to play its note, lift to stop. Eac
 ```
 HandySynth/
 ├── App/
-│   └── HandySynthApp.swift             — Entry point, dependency injection
+│   └── HandySynthApp.swift              — Entry point, dependency injection
 ├── Managers/
 │   ├── CameraManager.swift              — Camera capture session
-│   ├── HandTrackingManager.swift        — Vision hand pose detection
+│   ├── HandTrackingManager.swift        — Vision hand + body pose detection
+│   ├── PipelineCoordinator.swift        — Wires camera → gesture → audio pipeline
 │   ├── GestureInterpreter.swift         — Gesture recognition + parameter mapping
 │   ├── AudioEngine.swift                — Real-time audio synthesis + effects
 │   ├── Arpeggiator.swift                — Scale-aware arpeggiator engine
@@ -115,11 +121,13 @@ HandySynth/
 │   ├── AppSettings.swift                — Centralized app settings
 │   ├── MusicalParameters.swift          — Audio parameter struct
 │   ├── HandLandmarks.swift              — Hand joint data model
+│   ├── BodyLandmarks.swift              — Body pose joint data model
 │   ├── GestureState.swift               — Gesture detection logic
 │   └── ScaleDefinitions.swift           — Musical scale definitions
 ├── Views/
 │   ├── ContentView.swift                — Main view with camera + overlays
 │   ├── CameraPreviewView.swift          — Live camera feed
+│   ├── BodyWireframeOverlayView.swift   — 3D rigged model driven by body pose
 │   ├── PitchOverlayView.swift           — Pitch scale indicator
 │   ├── VolumeOverlayView.swift          — Volume meter
 │   ├── HandDebugOverlayView.swift       — Hand skeleton overlay
@@ -133,30 +141,44 @@ HandySynth/
 │   └── SmoothingFilter.swift            — Signal smoothing filter
 └── Resources/
     ├── Info.plist
+    ├── human_rigged.dae                 — Rigged 3D model for body wireframe
     └── Assets.xcassets/
 ```
 
 ## Settings
 
-All settings persist across launches. Configurable via the gear icon:
+All settings persist across launches. Configurable via the gear icon (⚙).
 
+**Synth**
 - **Waveform** — Sine, Triangle, Sawtooth, Square, Pad, FM
-- **FM Ratio** — carrier-to-modulator frequency ratio (0.5–8.0, visible when FM selected)
-- **FM Depth** — modulation index / harmonic richness (0–5.0, visible when FM selected)
+- **FM Ratio / Depth** — modulator frequency ratio and intensity (visible when FM selected)
+- **Finger Per Note** — switch to piano-style polyphonic mode
+- **Attack / Release** — envelope timing (0–500ms / 0–2000ms)
+
+**Pitch**
 - **Scale** — Major, Minor, Pentatonic, Chromatic, Blues
 - **Root note** — C through B
-- **Base octave** — 1–5
-- **Octave range** — 1–4
-- **Quantized mode** — Snap to scale notes
-- **Portamento** — Pitch glide speed
-- **Envelope** — Attack (0–500ms) and release (0–2000ms)
-- **Arpeggiator** — Enable/disable, BPM, pattern, octave range
-- **Reverb mix** — 0–100%
-- **Delay mix** — 0–100%
-- **Visualizer** — Toggle split view, terrain height/spacing, primary/secondary colors
-- **Finger-per-note** — Piano-style polyphonic mode
-- **Sustain enabled** — Allow pinch gesture to hold notes
-- **Show hand skeleton** — Debug overlay toggle
+- **Base octave / Octave range** — playing range
+- **Quantized mode** — snap pitch to scale notes
+- **Portamento** — pitch glide amount (0–100%)
+
+**Arpeggiator**
+- Enable/disable, BPM (60–300), pattern (Up/Down/Up-Down/Random), octave range
+
+**Effects**
+- **Hands Apart →** — choose what the bimanual gesture controls: Reverb or Delay
+- **Reverb mix / Delay mix** — fallback levels when gesture is inactive
+
+**Visualizer**
+- Toggle split view, terrain height/spacing, primary/secondary colors
+
+**Gesture Cheat Sheet**
+- Per-gesture enable toggles for: chord mode, pad detune, overdrive, sustain, vibrato, filter cutoff, bimanual effect
+
+**Display**
+- Show hand skeleton overlay
+- Body wireframe mode (3D rigged model driven by body pose)
+- Hide camera feed (when body wireframe is active)
 
 ## Privacy
 
