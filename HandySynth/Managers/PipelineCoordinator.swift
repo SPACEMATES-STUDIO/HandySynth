@@ -83,8 +83,28 @@ class PipelineCoordinator: ObservableObject {
             interpreter.update(leftHand: left, rightHand: right)
             var params = interpreter.parameters
             if settings.isQuantized { params.isQuantized = true }
-            if !params.bimanualReverbActive { params.reverbMix = settings.reverbMixFloat }
-            params.delayMix = settings.delayMixFloat
+
+            if params.bimanualActive {
+                switch settings.bimanualTarget {
+                case .reverb:
+                    params.reverbMix = params.bimanualAmount
+                    params.delayMix = settings.delayMixFloat
+                    params.distortion = 0
+                case .distortion:
+                    params.reverbMix = settings.reverbMixFloat
+                    params.delayMix = settings.delayMixFloat
+                    params.distortion = params.bimanualAmount
+                case .delay:
+                    params.reverbMix = settings.reverbMixFloat
+                    params.delayMix = params.bimanualAmount
+                    params.distortion = 0
+                }
+            } else {
+                params.reverbMix = settings.reverbMixFloat
+                params.delayMix = settings.delayMixFloat
+                params.distortion = 0
+            }
+
             engine.updateParameters(params)
         }
     }

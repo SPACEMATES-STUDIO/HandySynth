@@ -155,15 +155,31 @@ struct SettingsView: View {
                 GroupBox("Effects") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
+                            Text("Both Hands →")
+                            Spacer()
+                            Picker("", selection: $settings.bimanualTargetRaw) {
+                                ForEach(BimanualTarget.allCases) { target in
+                                    Text(target.rawValue).tag(target.rawValue)
+                                }
+                            }
+                            .frame(width: 140)
+                        }
+                        Text("Moving both hands apart sweeps this effect in real time.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        HStack {
                             Text("Reverb")
                             Slider(value: $settings.reverbMix, in: 0...1)
                             Text("\(Int(settings.reverbMix * 100))%")
                                 .frame(width: 40, alignment: .trailing)
                                 .font(.caption.monospacedDigit())
                         }
-                        Text("Reverb is gesture-controlled when both hands are visible (this value used as fallback).")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if settings.bimanualTarget == .reverb {
+                            Text("Fallback when only one hand is visible.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
 
                         HStack {
                             Text("Delay")
@@ -171,6 +187,11 @@ struct SettingsView: View {
                             Text("\(Int(settings.delayMix * 100))%")
                                 .frame(width: 40, alignment: .trailing)
                                 .font(.caption.monospacedDigit())
+                        }
+                        if settings.bimanualTarget == .delay {
+                            Text("Fallback when only one hand is visible.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -236,7 +257,8 @@ struct SettingsView: View {
                         gestureRow("✊ Fist", "Mute")
 
                         cheatSheetSection("BOTH HANDS", color: .purple)
-                        gestureRowBadged("↔ Move apart", "Real-time reverb — farther = more reverb", badge: "REVERB~", badgeColor: .blue)
+                        gestureRowBadged("↔ Move apart", bimanualCheatSheetDescription,
+                                         badge: bimanualCheatSheetBadge, badgeColor: bimanualCheatSheetColor)
 
                         Toggle("Enable Sustain (Pinch gesture)", isOn: $settings.sustainEnabled)
                             .font(.caption)
@@ -277,6 +299,30 @@ struct SettingsView: View {
                 Text("B").font(.caption).frame(width: 14)
                 Slider(value: b, in: 0...1)
             }
+        }
+    }
+
+    private var bimanualCheatSheetDescription: String {
+        switch settings.bimanualTarget {
+        case .reverb: return "Controls reverb — farther apart = more reverb"
+        case .distortion: return "Controls distortion — farther apart = more drive"
+        case .delay: return "Controls delay mix — farther apart = more echo"
+        }
+    }
+
+    private var bimanualCheatSheetBadge: String {
+        switch settings.bimanualTarget {
+        case .reverb: return "REVERB~"
+        case .distortion: return "DIST~"
+        case .delay: return "DELAY~"
+        }
+    }
+
+    private var bimanualCheatSheetColor: Color {
+        switch settings.bimanualTarget {
+        case .reverb: return .blue
+        case .distortion: return .red
+        case .delay: return .teal
         }
     }
 

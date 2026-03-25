@@ -46,6 +46,10 @@ struct MusicalParameters {
     // Pad detune depth (left-hand tilt), 0=unison 1=full spread
     var detune: Float = 0.0
 
-    // When true, reverb is driven by bimanual distance gesture
-    var bimanualReverbActive: Bool = false
+    // Bimanual distance gesture — raw 0-1 value routed to target effect
+    var bimanualActive: Bool = false
+    var bimanualAmount: Float = 0.0
+
+    // Distortion (soft clipping, 0=clean, 1=full drive)
+    var distortion: Float = 0.0
 }

@@ -156,12 +156,12 @@ struct ContentView: View {
                 .cornerRadius(4)
                 .opacity(gestureInterpreter.displayChordMode ? 1 : 0)
 
-            Text("REVERB~")
+            Text(bimanualBadgeLabel)
                 .font(.system(size: 10, weight: .bold))
-                .foregroundColor(.blue)
+                .foregroundColor(bimanualBadgeColor)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(.blue.opacity(0.2))
+                .background(bimanualBadgeColor.opacity(0.2))
                 .cornerRadius(4)
                 .opacity(gestureInterpreter.displayBimanualReverb ? 1 : 0)
         }
@@ -184,6 +184,22 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .popover(isPresented: $showSettings) {
             SettingsView(settings: settings)
+        }
+    }
+
+    private var bimanualBadgeLabel: String {
+        switch settings.bimanualTarget {
+        case .reverb: return "REVERB~"
+        case .distortion: return "DIST~"
+        case .delay: return "DELAY~"
+        }
+    }
+
+    private var bimanualBadgeColor: Color {
+        switch settings.bimanualTarget {
+        case .reverb: return .blue
+        case .distortion: return .red
+        case .delay: return .teal
         }
     }
 

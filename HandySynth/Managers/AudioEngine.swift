@@ -99,6 +99,9 @@ class AudioEngine: ObservableObject {
         // FM synthesis
         var fmRatio: Float = 2.0
         var fmDepth: Float = 1.0
+
+        // Distortion
+        var distortion: Float = 0.0
     }
 
     init() {
@@ -217,6 +220,7 @@ class AudioEngine: ObservableObject {
         audioParams.detune = params.detune
         audioParams.fmRatio = self.fmRatio
         audioParams.fmDepth = self.fmDepth
+        audioParams.distortion = params.distortion
         os_unfair_lock_unlock(&paramLock)
 
         // Update effects on main/caller thread (safe for these properties)
@@ -368,6 +372,12 @@ class AudioEngine: ObservableObject {
                 chordPhase3 += chordSmoothedFreq3 / sampleRate
                 if chordPhase3 >= 1.0 { chordPhase3 -= 1.0 }
                 sample = sample * 0.6 + c2 + c3
+            }
+
+            // Soft distortion (tanh waveshaping — hands apart drives amount)
+            if params.distortion > 0.001 {
+                let drive = 1.0 + params.distortion * 9.0  // 1x to 10x gain
+                sample = tanhf(sample * drive) / tanhf(drive)
             }
 
             // Write same sample to all channels (stereo)

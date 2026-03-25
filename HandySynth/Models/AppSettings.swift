@@ -1,5 +1,12 @@
 import SwiftUI
 
+enum BimanualTarget: String, CaseIterable, Identifiable {
+    case reverb = "Reverb"
+    case distortion = "Distortion"
+    case delay = "Delay"
+    var id: String { rawValue }
+}
+
 class AppSettings: ObservableObject {
     @AppStorage("selectedScale") var selectedScaleRaw = Scale.major.rawValue
     @AppStorage("rootNote") var rootNoteRaw = RootNote.C.rawValue
@@ -27,6 +34,14 @@ class AppSettings: ObservableObject {
     @AppStorage("arpBPM") var arpBPM = 120.0
     @AppStorage("arpPattern") var arpPatternRaw = ArpPattern.up.rawValue
     @AppStorage("arpOctaveRange") var arpOctaveRange = 1
+
+    // Bimanual gesture target
+    @AppStorage("bimanualTarget") var bimanualTargetRaw = BimanualTarget.reverb.rawValue
+
+    var bimanualTarget: BimanualTarget {
+        get { BimanualTarget(rawValue: bimanualTargetRaw) ?? .reverb }
+        set { bimanualTargetRaw = newValue.rawValue }
+    }
 
     // Display
     @AppStorage("showBodyWireframe") var showBodyWireframe = false

@@ -61,10 +61,11 @@ class GestureInterpreter: ObservableObject {
             let dx = Float(right.wrist.x - left.wrist.x)
             let dy = Float(right.wrist.y - left.wrist.y)
             let dist = sqrtf(dx * dx + dy * dy)
-            params.reverbMix = bimanualReverbFilter.smooth(min(max((dist - 0.1) / 0.5, 0.0), 1.0))
-            params.bimanualReverbActive = true
+            params.bimanualAmount = bimanualReverbFilter.smooth(min(max((dist - 0.1) / 0.5, 0.0), 1.0))
+            params.bimanualActive = true
         } else {
-            params.bimanualReverbActive = false
+            params.bimanualActive = false
+            params.bimanualAmount = 0
         }
 
         params.waveform = waveformOverride
@@ -263,7 +264,7 @@ class GestureInterpreter: ObservableObject {
             self?.displaySustaining = p.isSustaining
             self?.displayQuantized = p.isQuantized
             self?.displayChordMode = p.chordMode
-            self?.displayBimanualReverb = p.bimanualReverbActive
+            self?.displayBimanualReverb = p.bimanualActive
         }
     }
 }
