@@ -247,6 +247,7 @@ struct SettingsView: View {
                             gestureRow("↗ Tilt knuckles", "Pad detune depth — wider tilt = thicker sound (Pad only)")
                             gestureRow("☝️ Point", "Precision mode — slow, fine pitch control")
                             gestureRow("🤏 Pinch", settings.sustainEnabled ? "Hold note (sustain)" : "Sustain disabled in settings")
+                            gestureRow("✊ Curl fingers", "Overdrive — 4 fingers open = clean, curl down = grit")
                             gestureRow("〰 Shake wrist", "Vibrato — speed & depth from motion")
                         }
 
@@ -305,7 +306,6 @@ struct SettingsView: View {
     private var bimanualCheatSheetDescription: String {
         switch settings.bimanualTarget {
         case .reverb: return "Controls reverb — farther apart = more reverb"
-        case .distortion: return "Controls distortion — farther apart = more drive"
         case .delay: return "Controls delay mix — farther apart = more echo"
         }
     }
@@ -313,7 +313,6 @@ struct SettingsView: View {
     private var bimanualCheatSheetBadge: String {
         switch settings.bimanualTarget {
         case .reverb: return "REVERB~"
-        case .distortion: return "DIST~"
         case .delay: return "DELAY~"
         }
     }
@@ -321,7 +320,6 @@ struct SettingsView: View {
     private var bimanualCheatSheetColor: Color {
         switch settings.bimanualTarget {
         case .reverb: return .blue
-        case .distortion: return .red
         case .delay: return .teal
         }
     }

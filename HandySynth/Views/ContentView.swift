@@ -190,7 +190,6 @@ struct ContentView: View {
     private var bimanualBadgeLabel: String {
         switch settings.bimanualTarget {
         case .reverb: return "REVERB~"
-        case .distortion: return "DIST~"
         case .delay: return "DELAY~"
         }
     }
@@ -198,7 +197,6 @@ struct ContentView: View {
     private var bimanualBadgeColor: Color {
         switch settings.bimanualTarget {
         case .reverb: return .blue
-        case .distortion: return .red
         case .delay: return .teal
         }
     }

@@ -2,7 +2,6 @@ import SwiftUI
 
 enum BimanualTarget: String, CaseIterable, Identifiable {
     case reverb = "Reverb"
-    case distortion = "Distortion"
     case delay = "Delay"
     var id: String { rawValue }
 }

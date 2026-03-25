@@ -89,20 +89,13 @@ class PipelineCoordinator: ObservableObject {
                 case .reverb:
                     params.reverbMix = params.bimanualAmount
                     params.delayMix = settings.delayMixFloat
-                    params.distortion = 0
-                case .distortion:
-                    params.reverbMix = settings.reverbMixFloat
-                    params.delayMix = settings.delayMixFloat
-                    params.distortion = params.bimanualAmount
                 case .delay:
                     params.reverbMix = settings.reverbMixFloat
                     params.delayMix = params.bimanualAmount
-                    params.distortion = 0
                 }
             } else {
                 params.reverbMix = settings.reverbMixFloat
                 params.delayMix = settings.delayMixFloat
-                params.distortion = 0
             }
 
             engine.updateParameters(params)

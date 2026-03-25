@@ -29,6 +29,7 @@ class GestureInterpreter: ObservableObject {
     private let leftSpreadFilter = SmoothingFilter(factor: 0.6)
     private let detuneFilter = SmoothingFilter(factor: 0.7)
     private let bimanualReverbFilter = SmoothingFilter(factor: 0.4)
+    private let distortionFilter = SmoothingFilter(factor: 0.3)
 
     // Debouncing for discrete gestures
     private let leftDebouncer = GestureDebouncer(requiredFrames: 4)
@@ -129,6 +130,11 @@ class GestureInterpreter: ObservableObject {
         let tiltAngle = atan2f(Float(left.indexMCP.y - left.littleMCP.y),
                                Float(left.littleMCP.x - left.indexMCP.x))
         params.detune = detuneFilter.smooth(min(max(tiltAngle / (.pi / 2), 0.0), 1.0))
+
+        // Feature: left-hand finger closure → distortion (4+ extended = clean, curl down for drive)
+        let extendedCount = FingerState.from(left).extendedCount
+        let rawDistortion = min(1.0, Float(max(0, 4 - extendedCount)) / 3.0)
+        params.distortion = distortionFilter.smooth(gesture == .fist ? 0 : rawDistortion)
 
         detectVibrato(wristY: Float(left.wrist.y), params: &params)
     }

@@ -334,7 +334,21 @@ class AudioEngine: ObservableObject {
                 for i in 0..<5 { if padPhases[i] >= 1.0 { padPhases[i] -= 1.0 } }
             }
 
-            // One-pole low-pass filter
+            // Cubic soft-clip overdrive — smooth saturation like a guitar pedal
+            if params.distortion > 0.001 {
+                let drive = 1.0 + params.distortion * 8.0  // 1x to 9x gain
+                let s = sample * drive
+                if s >= 1.0 {
+                    sample = 2.0 / 3.0
+                } else if s <= -1.0 {
+                    sample = -2.0 / 3.0
+                } else {
+                    sample = s - (s * s * s) / 3.0
+                }
+                sample *= 1.5  // normalize: peak 2/3 → 1.0
+            }
+
+            // One-pole low-pass filter (tone control — works on distorted signal too)
             filterState += filterAlpha * (sample - filterState)
             sample = filterState
 
@@ -357,12 +371,6 @@ class AudioEngine: ObservableObject {
                 }
             } else {
                 envelopeLevel = 0.0
-            }
-
-            // Hard-clip distortion — applied pre-envelope so it saturates the raw waveform
-            if params.distortion > 0.001 {
-                let drive = 1.0 + params.distortion * 29.0  // 1x to 30x gain
-                sample = max(-1.0, min(1.0, sample * drive))
             }
 
             sample *= smoothedVolume * envelopeLevel
